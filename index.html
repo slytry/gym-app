@@ -1,0 +1,110 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#101515">
+  <meta name="description" content="Офлайн-дневник четырёх силовых тренировок">
+  <link rel="manifest" href="./manifest.webmanifest">
+  <link rel="icon" href="./icons/icon-192.png" sizes="192x192">
+  <link rel="apple-touch-icon" href="./icons/icon-192.png">
+  <link rel="stylesheet" href="./styles.css">
+  <title>40 минут — дневник зала</title>
+</head>
+<body>
+  <header class="app-header">
+    <div>
+      <p class="eyebrow">Сила ног и спины</p>
+      <h1>40 минут</h1>
+    </div>
+    <button id="install-button" class="button button-quiet" type="button" hidden>Установить</button>
+  </header>
+
+  <div id="storage-warning" class="banner banner-error" role="alert" hidden></div>
+  <div id="offline-banner" class="banner" role="status" hidden>Офлайн-режим: журнал работает, внешние иллюстрации могут быть недоступны.</div>
+  <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
+
+  <main>
+    <section id="view-workout" class="view" aria-labelledby="workout-heading">
+      <div id="day-selector" class="day-selector" aria-label="Выбор тренировки"></div>
+
+      <article class="summary-card">
+        <div>
+          <p id="workout-weekday" class="eyebrow"></p>
+          <h2 id="workout-heading"></h2>
+          <p id="workout-date" class="muted"></p>
+        </div>
+        <div id="workout-progress" class="progress-pill"></div>
+      </article>
+
+      <details class="guidance">
+        <summary>Разминка, тайминг и правило 40 минут</summary>
+        <div id="timing-guidance" class="guidance-content"></div>
+      </details>
+
+      <div id="exercise-list" class="exercise-list"></div>
+
+      <div class="workout-actions">
+        <button id="finish-workout" class="button button-primary" type="button">Завершить тренировку</button>
+        <button id="new-workout" class="button button-danger" type="button">Очистить черновик</button>
+      </div>
+
+      <section class="timer-card" aria-labelledby="timer-heading">
+        <div class="timer-topline">
+          <div>
+            <p class="eyebrow">Отдых</p>
+            <h2 id="timer-heading" class="timer-display">1:30</h2>
+          </div>
+          <p id="timer-status" class="timer-status">Готов</p>
+        </div>
+        <div id="timer-presets" class="timer-presets" aria-label="Длительность отдыха">
+          <button type="button" data-seconds="60">1:00</button>
+          <button type="button" data-seconds="90">1:30</button>
+          <button type="button" data-seconds="120">2:00</button>
+          <button type="button" data-seconds="180">3:00</button>
+        </div>
+        <div class="timer-actions">
+          <button id="timer-toggle" class="button button-primary" type="button">Старт</button>
+          <button id="timer-reset" class="button button-quiet" type="button">Сброс</button>
+        </div>
+        <p class="fine-print">Таймер восстанавливается по времени окончания. Фоновый сигнал Android не гарантирован; вибрация сработает только если страница открыта на экране и браузер разрешил её.</p>
+      </section>
+    </section>
+
+    <section id="view-history" class="view" aria-labelledby="history-heading" hidden>
+      <div class="section-heading">
+        <div>
+          <p class="eyebrow">Только завершённые</p>
+          <h2 id="history-heading">История</h2>
+        </div>
+        <button id="export-all" class="button button-quiet" type="button">Экспорт всех .md</button>
+      </div>
+      <p id="history-empty" class="empty-state">Завершённых тренировок пока нет.</p>
+      <div id="history-list" class="history-list"></div>
+    </section>
+
+    <section id="view-program" class="view" aria-labelledby="program-heading" hidden>
+      <div class="section-heading">
+        <div>
+          <p class="eyebrow">4 зала · 2 йоги · 1 отдых</p>
+          <h2 id="program-heading">Программа и техника</h2>
+        </div>
+      </div>
+      <article class="program-intro">
+        <p>Пн — ноги А · Вт — спина А · Ср — йога · Чт — ноги Б · Пт — спина Б · Сб — йога · Вс — полный отдых.</p>
+        <p>Первые 1–2 недели подобрать веса с запасом 2–3 повтора. Затем сначала достигать верхней границы повторений, потом повышать вес. Для становой — шаг 2,5 кг только при уверенных тройках.</p>
+        <p>Если результаты падают две тренировки подряд или копится усталость: примерно вдвое сократить рабочие подходы и снизить вес на 10–15%.</p>
+      </article>
+      <div id="program-list" class="program-list"></div>
+    </section>
+  </main>
+
+  <nav class="bottom-nav" aria-label="Основная навигация">
+    <button type="button" data-view="workout" aria-current="page">Тренировка</button>
+    <button type="button" data-view="history">История</button>
+    <button type="button" data-view="program">Программа</button>
+  </nav>
+
+  <script type="module" src="./app.js"></script>
+</body>
+</html>
