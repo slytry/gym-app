@@ -13,6 +13,7 @@ export const PROGRAM = [
         kind: 'reps',
         weight: 'barbell',
         rest: '2,5–3 мин',
+        restSeconds: 180,
         image: 'https://static.strengthlevel.com/images/illustrations/squat-1000x1000.jpg',
         links: [{ label: 'Страница упражнения', url: 'https://strengthlevel.com/strength-standards/squat' }],
         tips: [
@@ -29,6 +30,7 @@ export const PROGRAM = [
         kind: 'reps',
         weight: 'machine',
         rest: '90–120 с',
+        restSeconds: 120,
         image: 'https://static.strengthlevel.com/images/illustrations/lying-leg-curl-1000x1000.jpg',
         links: [
           { label: 'Вариант лёжа', url: 'https://strengthlevel.com/strength-standards/lying-leg-curl' },
@@ -48,6 +50,7 @@ export const PROGRAM = [
         kind: 'sides',
         weight: 'dumbbell',
         rest: '45–60 с',
+        restSeconds: 60,
         image: 'https://static.strengthlevel.com/images/illustrations/dumbbell-calf-raise-1000x1000.jpg',
         links: [{ label: 'Страница упражнения', url: 'https://strengthlevel.com/strength-standards/dumbbell-calf-raise' }],
         note: 'Выполнять на одной ноге на полу, свободной рукой держаться за устойчивую опору. Иллюстрация показывает общий вариант.',
@@ -64,6 +67,7 @@ export const PROGRAM = [
         kind: 'reps',
         weight: 'dumbbell',
         rest: '45–60 с',
+        restSeconds: 60,
         image: 'https://static.strengthlevel.com/images/illustrations/dumbbell-reverse-wrist-curl-1000x1000.jpg',
         links: [{ label: 'Страница упражнения', url: 'https://strengthlevel.com/strength-standards/dumbbell-reverse-wrist-curl' }],
         tips: [
@@ -87,6 +91,7 @@ export const PROGRAM = [
         kind: 'reps',
         weight: 'pullup',
         rest: '2,5–3 мин',
+        restSeconds: 180,
         image: 'https://static.strengthlevel.com/images/illustrations/pull-ups-1000x1000.jpg',
         links: [{ label: 'Страница упражнения', url: 'https://strengthlevel.com/strength-standards/pull-ups' }],
         note: 'Вес — только дополнительное отягощение, не масса тела.',
@@ -103,6 +108,7 @@ export const PROGRAM = [
         kind: 'reps',
         weight: 'dumbbell',
         rest: '60–90 с при чередовании',
+        restSeconds: 90,
         image: 'https://static.strengthlevel.com/images/illustrations/dumbbell-bench-press-1000x1000.jpg',
         links: [{ label: 'Страница упражнения', url: 'https://strengthlevel.com/strength-standards/dumbbell-bench-press' }],
         note: 'Небольшой объём для мышечного баланса; можно чередовать с тягой.',
@@ -119,6 +125,7 @@ export const PROGRAM = [
         kind: 'reps',
         weight: 'dumbbell',
         rest: '60–90 с при чередовании',
+        restSeconds: 90,
         image: 'https://static.strengthlevel.com/images/illustrations/chest-supported-dumbbell-row-1000x1000.jpg',
         links: [{ label: 'Страница упражнения', url: 'https://strengthlevel.com/strength-standards/chest-supported-dumbbell-row' }],
         note: 'Можно чередовать с жимом гантелей лёжа.',
@@ -136,6 +143,7 @@ export const PROGRAM = [
         kind: 'seconds',
         weight: null,
         rest: 'короткий переход',
+        restSeconds: 30,
         note: 'Первый круг обязателен, второй — по самочувствию. Лёгкое усилие, без задержки дыхания.',
         tips: ['Ладонь создаёт сопротивление со стороны лба; голова остаётся неподвижной.']
       },
@@ -148,6 +156,7 @@ export const PROGRAM = [
         kind: 'seconds',
         weight: null,
         rest: 'короткий переход',
+        restSeconds: 30,
         note: 'Первый круг обязателен, второй — по самочувствию. Лёгкое усилие, без задержки дыхания.',
         tips: ['Ладонь создаёт сопротивление со стороны затылка; голова остаётся неподвижной.']
       },
@@ -160,6 +169,7 @@ export const PROGRAM = [
         kind: 'seconds',
         weight: null,
         rest: 'короткий переход',
+        restSeconds: 30,
         note: 'Первый круг обязателен, второй — по самочувствию. Лёгкое усилие, без задержки дыхания.',
         tips: ['Ладонь у левого виска; давить без движения головы, сохраняя нейтральное положение.']
       },
@@ -172,6 +182,7 @@ export const PROGRAM = [
         kind: 'seconds',
         weight: null,
         rest: 'короткий переход',
+        restSeconds: 30,
         note: 'Первый круг обязателен, второй — по самочувствию. Лёгкое усилие, без задержки дыхания.',
         tips: ['Ладонь у правого виска; давить без движения головы, сохраняя нейтральное положение.']
       }
@@ -191,6 +202,7 @@ export const PROGRAM = [
         kind: 'reps',
         weight: 'barbell',
         rest: '2,5–3 мин',
+        restSeconds: 180,
         image: 'https://static.strengthlevel.com/images/illustrations/deadlift-1000x1000.jpg',
         links: [{ label: 'Страница упражнения', url: 'https://strengthlevel.com/strength-standards/deadlift' }],
         note: 'Оставлять примерно 2 повтора в запасе, без отказа и затяжных повторений.',
@@ -207,6 +219,7 @@ export const PROGRAM = [
         kind: 'reps',
         weight: 'machine',
         rest: '90–120 с',
+        restSeconds: 120,
         image: 'https://static.strengthlevel.com/images/illustrations/sled-leg-press-1000x1000.jpg',
         links: [{ label: 'Страница упражнения', url: 'https://strengthlevel.com/strength-standards/sled-leg-press' }],
         note: 'Конструкция тренажёра может отличаться от показанной платформы-салазок.',
@@ -223,6 +236,7 @@ export const PROGRAM = [
         kind: 'reps',
         weight: 'dumbbell',
         rest: '45–60 с',
+        restSeconds: 60,
         image: 'https://static.strengthlevel.com/images/illustrations/dumbbell-wrist-curl-1000x1000.jpg',
         links: [{ label: 'Страница упражнения', url: 'https://strengthlevel.com/strength-standards/dumbbell-wrist-curl' }],
         tips: [
@@ -246,6 +260,7 @@ export const PROGRAM = [
         kind: 'reps',
         weight: 'dumbbell',
         rest: '2,5–3 мин',
+        restSeconds: 180,
         image: 'https://static.strengthlevel.com/images/illustrations/chest-supported-dumbbell-row-1000x1000.jpg',
         links: [{ label: 'Страница упражнения', url: 'https://strengthlevel.com/strength-standards/chest-supported-dumbbell-row' }],
         note: 'Упор грудью снижает дополнительную нагрузку на поясницу после становой.',
@@ -262,6 +277,7 @@ export const PROGRAM = [
         kind: 'reps',
         weight: 'dumbbell',
         rest: '90–120 с',
+        restSeconds: 120,
         image: 'https://static.strengthlevel.com/images/illustrations/seated-dumbbell-shoulder-press-1000x1000.jpg',
         links: [{ label: 'Страница упражнения', url: 'https://strengthlevel.com/strength-standards/seated-dumbbell-shoulder-press' }],
         tips: [
@@ -277,6 +293,7 @@ export const PROGRAM = [
         kind: 'reps',
         weight: 'dumbbell',
         rest: '45–60 с',
+        restSeconds: 60,
         image: 'https://static.strengthlevel.com/images/illustrations/dumbbell-shrug-1000x1000.jpg',
         links: [{ label: 'Страница упражнения', url: 'https://strengthlevel.com/strength-standards/dumbbell-shrug' }],
         tips: [
@@ -292,6 +309,7 @@ export const PROGRAM = [
         kind: 'seconds',
         weight: 'dumbbell',
         rest: '45–60 с',
+        restSeconds: 60,
         note: 'Заканчивать до раскрытия пальцев, а не после падения гантели. Прогулка фермера не заменяет статическое удержание.',
         tips: [
           'Стоять устойчиво, гантели вдоль тела, кисти нейтрально.',

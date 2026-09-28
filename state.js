@@ -1,5 +1,5 @@
-import { PROGRAM, getRoutine } from './program.js';
-import { createTimerState } from './timer.js';
+import { PROGRAM, getExercise, getRoutine } from './program.js';
+import { createTimerState, startTimer } from './timer.js';
 
 export const STORAGE_KEY = 'gym-log-pwa:v1';
 
@@ -21,12 +21,14 @@ export function createInitialStore() {
   };
 }
 
-export function createWorkout(routineId, timestamp = Date.now(), id = createId(timestamp)) {
+export function createWorkout(routineId, timestamp = Date.now(), id = createId(timestamp), history = []) {
   const routine = getRoutine(routineId);
   const sets = {};
 
   for (const exercise of routine.exercises) {
-    sets[exercise.id] = Array.from({ length: exercise.sets }, () => createSetResult(exercise.kind));
+    sets[exercise.id] = Array.from({ length: exercise.sets }, (_, setIndex) => (
+      createSetResult(exercise, findPreviousSet(history, routine.id, exercise.id, setIndex))
+    ));
   }
 
   return {
@@ -40,18 +42,21 @@ export function createWorkout(routineId, timestamp = Date.now(), id = createId(t
   };
 }
 
-export function createSetResult(kind) {
+export function createSetResult(exercise, previous = null) {
+  const fallback = String(planLowerBound(exercise.target));
   const result = {
     status: 'pending',
-    weight: ''
+    weight: previousValue(previous, 'weight', ''),
+    prefilled: true,
+    edited: false
   };
 
-  if (kind === 'seconds') result.seconds = '';
-  if (kind === 'sides') {
-    result.leftReps = '';
-    result.rightReps = '';
+  if (exercise.kind === 'seconds') result.seconds = previousValue(previous, 'seconds', fallback);
+  if (exercise.kind === 'sides') {
+    result.leftReps = previousValue(previous, 'leftReps', fallback);
+    result.rightReps = previousValue(previous, 'rightReps', fallback);
   }
-  if (kind === 'reps') result.reps = '';
+  if (exercise.kind === 'reps') result.reps = previousValue(previous, 'reps', fallback);
 
   return result;
 }
@@ -59,7 +64,11 @@ export function createSetResult(kind) {
 export function ensureDraft(store, routineId, timestamp = Date.now()) {
   if (store.drafts[routineId]) return store.drafts[routineId];
 
-  const draft = createWorkout(routineId, timestamp);
+  return startNewDraft(store, routineId, timestamp);
+}
+
+export function startNewDraft(store, routineId, timestamp = Date.now()) {
+  const draft = createWorkout(routineId, timestamp, undefined, store.history);
   store.drafts[routineId] = draft;
   return draft;
 }
@@ -67,11 +76,8 @@ export function ensureDraft(store, routineId, timestamp = Date.now()) {
 export function workoutHasProgress(workout) {
   return Object.values(workout.sets).flat().some((set) => (
     set.status !== 'pending'
-    || set.weight !== ''
-    || set.reps !== undefined && set.reps !== ''
-    || set.seconds !== undefined && set.seconds !== ''
-    || set.leftReps !== undefined && set.leftReps !== ''
-    || set.rightReps !== undefined && set.rightReps !== ''
+    || set.edited === true
+    || set.prefilled !== true && setHasValues(set)
   ));
 }
 
@@ -84,11 +90,24 @@ export function finishWorkout(workout, timestamp = Date.now()) {
 }
 
 export function findPreviousSet(history, routineId, exerciseId, setIndex) {
-  const previousWorkout = [...history]
+  const previousSet = [...history]
     .filter((workout) => workout.routineId === routineId && workout.finishedAt)
-    .sort((a, b) => b.finishedAt - a.finishedAt)[0];
+    .sort((a, b) => b.finishedAt - a.finishedAt)
+    .map((workout) => workout.sets?.[exerciseId]?.[setIndex])
+    .find((set) => set?.status === 'done');
 
-  return previousWorkout?.sets?.[exerciseId]?.[setIndex] || null;
+  return previousSet || null;
+}
+
+export function transitionSetStatus(workout, timer, exerciseId, setIndex, requestedStatus, timestamp = Date.now()) {
+  const result = workout.sets[exerciseId][setIndex];
+  const nextStatus = result.status === requestedStatus ? 'pending' : requestedStatus;
+  result.status = nextStatus;
+
+  if (nextStatus !== 'done') return timer;
+
+  const exercise = getExercise(workout.routineId, exerciseId);
+  return startTimer(timer, exercise.restSeconds, timestamp);
 }
 
 export function countStatuses(workout) {
@@ -148,6 +167,24 @@ export function saveStore(storage, store) {
 function createId(timestamp) {
   if (globalThis.crypto?.randomUUID) return globalThis.crypto.randomUUID();
   return `workout-${timestamp}-${Math.random().toString(36).slice(2)}`;
+}
+
+function previousValue(previous, field, fallback) {
+  const value = previous?.[field];
+  return value === undefined || value === '' ? fallback : String(value);
+}
+
+function planLowerBound(target) {
+  const match = target.match(/\d+/);
+  return match ? Number(match[0]) : 0;
+}
+
+function setHasValues(set) {
+  return set.weight !== ''
+    || set.reps !== undefined && set.reps !== ''
+    || set.seconds !== undefined && set.seconds !== ''
+    || set.leftReps !== undefined && set.leftReps !== ''
+    || set.rightReps !== undefined && set.rightReps !== '';
 }
 
 function structuredCloneSafe(value) {

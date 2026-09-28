@@ -1,12 +1,13 @@
 import { GENERAL_GUIDANCE, PROGRAM, WEIGHT_LABELS, getRoutine } from './program.js';
 import {
   countStatuses,
-  createWorkout,
   ensureDraft,
   findPreviousSet,
   finishWorkout,
   loadStore,
   saveStore,
+  startNewDraft,
+  transitionSetStatus,
   workoutHasProgress
 } from './state.js';
 import {
@@ -80,6 +81,8 @@ function bindEvents() {
     const draft = ensureDraft(store, store.selectedRoutineId);
     const result = draft.sets[input.dataset.exerciseId][Number(input.dataset.setIndex)];
     result[input.dataset.field] = input.value;
+    result.prefilled = false;
+    result.edited = true;
     draft.updatedAt = Date.now();
     persist();
   });
@@ -89,11 +92,19 @@ function bindEvents() {
     if (!button) return;
 
     const draft = ensureDraft(store, store.selectedRoutineId);
-    const result = draft.sets[button.dataset.exerciseId][Number(button.dataset.setIndex)];
-    result.status = result.status === button.dataset.status ? 'pending' : button.dataset.status;
-    draft.updatedAt = Date.now();
+    const timestamp = Date.now();
+    store.timer = transitionSetStatus(
+      draft,
+      store.timer,
+      button.dataset.exerciseId,
+      Number(button.dataset.setIndex),
+      button.dataset.status,
+      timestamp
+    );
+    draft.updatedAt = timestamp;
     persist();
     renderWorkout();
+    renderTimer();
   });
 
   elements.finishWorkout.addEventListener('click', finishCurrentWorkout);
@@ -197,7 +208,7 @@ function renderExercise(exercise, draft) {
           <h3>${escapeHtml(exercise.name)}</h3>
           <p class="exercise-meta">${exercise.sets} × ${escapeHtml(exercise.target)}${escapeHtml(weightText)}</p>
         </div>
-        <span class="rest-badge">${escapeHtml(exercise.rest)}</span>
+        <span class="rest-badge">${escapeHtml(exercise.rest)} · авто ${formatTimer(exercise.restSeconds * 1000)}</span>
       </header>
       <div class="sets">${setRows}</div>
       ${renderTechnique(exercise)}
@@ -226,9 +237,7 @@ function renderSetRow(exercise, result, previous, index) {
   `).join('');
 
   const optional = exercise.optionalAfter && index >= exercise.optionalAfter;
-  const hint = previous?.status === 'done'
-    ? `<p class="previous-hint">Ранее: ${escapeHtml(trimFinalPeriod(formatSetResult(previous, exercise)))}. Это только подсказка.</p>`
-    : '';
+  const hint = renderSetHint(exercise, result, previous);
 
   return `
     <div class="set-row">
@@ -263,6 +272,19 @@ function previousValue(previous, field) {
   return value === undefined || value === '' ? '' : `было ${value}`;
 }
 
+function renderSetHint(exercise, result, previous) {
+  if (result.prefilled && result.status === 'pending') {
+    const source = previous?.status === 'done'
+      ? ` из прошлого выполненного подхода: ${escapeHtml(trimFinalPeriod(formatSetResult(previous, exercise)))}`
+      : ' по нижней границе плана';
+    return `<p class="previous-hint">Предзаполнено${source}. Текущий подход ещё не выполнен.</p>`;
+  }
+  if (previous?.status === 'done') {
+    return `<p class="previous-hint">Прошлый выполненный подход: ${escapeHtml(trimFinalPeriod(formatSetResult(previous, exercise)))}.</p>`;
+  }
+  return '';
+}
+
 function renderTechnique(exercise) {
   const image = exercise.image
     ? `<img class="technique-image" src="${exercise.image}" alt="${escapeHtml(exercise.name)}" loading="lazy" referrerpolicy="no-referrer">`
@@ -292,8 +314,7 @@ function finishCurrentWorkout() {
 
   const completed = finishWorkout(draft);
   store.history.push(completed);
-  delete store.drafts[store.selectedRoutineId];
-  store.drafts[store.selectedRoutineId] = createWorkout(store.selectedRoutineId);
+  startNewDraft(store, store.selectedRoutineId);
   const saved = persist();
   renderWorkout();
   renderHistory();
@@ -307,7 +328,7 @@ function clearCurrentDraft() {
     : 'Создать новый черновик с текущей датой?';
   if (!window.confirm(message)) return;
 
-  store.drafts[store.selectedRoutineId] = createWorkout(store.selectedRoutineId);
+  startNewDraft(store, store.selectedRoutineId);
   const saved = persist();
   renderWorkout();
   showToast(saved ? 'Создан новый черновик' : 'Новый черновик не сохранён на устройстве');
@@ -350,7 +371,7 @@ function renderProgram() {
         ${routine.exercises.map((exercise) => `
           <article class="program-exercise">
             <h3>${escapeHtml(exercise.name)}</h3>
-            <p class="exercise-meta">${exercise.sets} × ${escapeHtml(exercise.target)} · отдых ${escapeHtml(exercise.rest)}${exercise.weight ? ` · ${escapeHtml(WEIGHT_LABELS[exercise.weight])}` : ''}</p>
+            <p class="exercise-meta">${exercise.sets} × ${escapeHtml(exercise.target)} · отдых ${escapeHtml(exercise.rest)} · авто ${formatTimer(exercise.restSeconds * 1000)}${exercise.weight ? ` · ${escapeHtml(WEIGHT_LABELS[exercise.weight])}` : ''}</p>
             ${renderTechnique(exercise)}
           </article>
         `).join('')}
