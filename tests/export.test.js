@@ -28,3 +28,16 @@ test('общий экспорт сортирует тренировки по в�
   assert.ok(markdown.indexOf('Ноги А') < markdown.indexOf('Спина Б'));
   assert.match(markdown, /^# История тренировок/);
 });
+
+test('экспорт старого подъёма с гантелью не смешивается с упражнением в Смите', () => {
+  const workout = createWorkout('legs-a', 100, 'legacy');
+  workout.sets['single-calf-raise'] = [
+    { status: 'done', weight: '12', leftReps: '10', rightReps: '9' },
+    { status: 'skipped' }
+  ];
+
+  const markdown = workoutToMarkdown(workout);
+  assert.match(markdown, /Подъём на носки в тренажёре Смита/);
+  assert.match(markdown, /Подъём на носок одной ноги с гантелью/);
+  assert.match(markdown, /12 кг на одну гантель × левая 10 повт\. × правая 9 повт\./);
+});

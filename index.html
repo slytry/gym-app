@@ -8,14 +8,13 @@
   <link rel="manifest" href="./manifest.webmanifest">
   <link rel="icon" href="./icons/icon-192.png" sizes="192x192">
   <link rel="apple-touch-icon" href="./icons/icon-192.png">
-  <link rel="stylesheet" href="./styles.css">
+  <link rel="stylesheet" href="./styles.css?v=9">
   <title>40 минут — дневник зала</title>
 </head>
 <body>
   <header class="app-header">
     <div>
       <p class="eyebrow">Сила ног и спины</p>
-      <h1>40 минут</h1>
     </div>
     <button id="install-button" class="button button-quiet" type="button" hidden>Установить</button>
   </header>
@@ -26,6 +25,25 @@
 
   <main>
     <section id="view-workout" class="view" aria-labelledby="workout-heading">
+      <section class="timer-card" aria-labelledby="timer-heading">
+        <div class="timer-topline">
+          <div>
+            <p class="eyebrow">Отдых</p>
+            <h2 id="timer-heading" class="timer-display">1:30</h2>
+          </div>
+          <p id="timer-status" class="timer-status">Готов</p>
+          <div class="timer-actions">
+            <button id="timer-toggle" class="button button-primary" type="button">Старт</button>
+            <button id="timer-reset" class="button button-quiet" type="button">Сброс</button>
+          </div>
+        </div>
+        <div id="timer-presets" class="timer-presets" aria-label="Длительность отдыха">
+          <button type="button" data-seconds="60">1:00</button>
+          <button type="button" data-seconds="90">1:30</button>
+          <button type="button" data-seconds="120">2:00</button>
+          <button type="button" data-seconds="180">3:00</button>
+        </div>
+      </section>
       <div id="day-selector" class="day-selector" aria-label="Выбор тренировки"></div>
 
       <article class="summary-card">
@@ -37,11 +55,6 @@
         <div id="workout-progress" class="progress-pill"></div>
       </article>
 
-      <details class="guidance">
-        <summary>Разминка, тайминг и правило 40 минут</summary>
-        <div id="timing-guidance" class="guidance-content"></div>
-      </details>
-
       <div id="exercise-list" class="exercise-list"></div>
 
       <div class="workout-actions">
@@ -49,26 +62,6 @@
         <button id="new-workout" class="button button-danger" type="button">Очистить черновик</button>
       </div>
 
-      <section class="timer-card" aria-labelledby="timer-heading">
-        <div class="timer-topline">
-          <div>
-            <p class="eyebrow">Отдых</p>
-            <h2 id="timer-heading" class="timer-display">1:30</h2>
-          </div>
-          <p id="timer-status" class="timer-status">Готов</p>
-        </div>
-        <div id="timer-presets" class="timer-presets" aria-label="Длительность отдыха">
-          <button type="button" data-seconds="60">1:00</button>
-          <button type="button" data-seconds="90">1:30</button>
-          <button type="button" data-seconds="120">2:00</button>
-          <button type="button" data-seconds="180">3:00</button>
-        </div>
-        <div class="timer-actions">
-          <button id="timer-toggle" class="button button-primary" type="button">Старт</button>
-          <button id="timer-reset" class="button button-quiet" type="button">Сброс</button>
-        </div>
-        <p class="fine-print">Таймер восстанавливается по времени окончания. Фоновый сигнал Android не гарантирован; вибрация сработает только если страница открыта на экране и браузер разрешил её.</p>
-      </section>
     </section>
 
     <section id="view-history" class="view" aria-labelledby="history-heading" hidden>
@@ -105,6 +98,6 @@
     <button type="button" data-view="program">Программа</button>
   </nav>
 
-  <script type="module" src="./app.js"></script>
+  <script type="module" src="./app.js?v=9"></script>
 </body>
 </html>

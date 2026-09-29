@@ -1,14 +1,14 @@
 const CACHE_PREFIX = 'gym-log-pwa-';
-const CACHE_NAME = `${CACHE_PREFIX}v3`;
+const CACHE_NAME = `${CACHE_PREFIX}v9`;
 const APP_SHELL = [
   './',
   './index.html',
-  './styles.css',
-  './app.js',
-  './program.js',
-  './state.js',
-  './timer.js',
-  './export.js',
+  './styles.css?v=9',
+  './app.js?v=9',
+  './program.js?v=9',
+  './state.js?v=9',
+  './timer.js?v=9',
+  './export.js?v=9',
   './manifest.webmanifest',
   './icons/icon-192.png',
   './icons/icon-512.png'
@@ -44,6 +44,12 @@ self.addEventListener('fetch', (event) => {
   }
 
   event.respondWith(
-    caches.match(request).then((cached) => cached || fetch(request))
+    fetch(request).then((response) => {
+      if (response.ok) {
+        const copy = response.clone();
+        event.waitUntil(caches.open(CACHE_NAME).then((cache) => cache.put(request, copy)));
+      }
+      return response;
+    }).catch(() => caches.match(request))
   );
 });

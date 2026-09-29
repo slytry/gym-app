@@ -200,6 +200,7 @@ h3 {
   justify-content: space-between;
   gap: 12px;
   padding: 16px;
+  margin-bottom: 16px;
 }
 
 .progress-pill {
@@ -212,14 +213,6 @@ h3 {
   font-weight: 800;
 }
 
-.guidance {
-  margin: 12px 0;
-  border: 1px solid var(--line);
-  border-radius: 14px;
-  background: rgba(21, 27, 26, 0.78);
-}
-
-.guidance summary,
 .technique summary,
 .history-card summary,
 .program-day > summary {
@@ -229,14 +222,6 @@ h3 {
   font-weight: 750;
 }
 
-.guidance-content {
-  padding: 0 14px 14px;
-  color: var(--muted);
-  font-size: 0.84rem;
-  line-height: 1.5;
-}
-
-.guidance-content ul,
 .technique-body ul {
   margin: 8px 0 0;
   padding-left: 20px;
@@ -288,8 +273,8 @@ h3 {
 
 .set-row {
   display: grid;
-  grid-template-columns: 28px minmax(0, 1fr);
-  gap: 8px;
+  grid-template-columns: 18px minmax(0, 1fr);
+  gap: 6px;
   padding: 11px 12px;
   background: #141a19;
 }
@@ -298,8 +283,9 @@ h3 {
   display: grid;
   place-items: center;
   align-self: start;
-  width: 28px;
-  height: 44px;
+  width: 18px;
+  height: 20px;
+  margin-top: 20px;
   color: var(--muted);
   font-size: 0.78rem;
   font-weight: 800;
@@ -307,6 +293,45 @@ h3 {
 
 .set-content {
   min-width: 0;
+}
+
+.circuit-note {
+  margin: 0;
+  padding: 12px 14px;
+  color: var(--lime);
+  font-size: 0.84rem;
+}
+
+.circuit-tabs {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  padding: 0 12px 12px;
+}
+
+.circuit-tabs button {
+  min-height: 44px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  color: var(--muted);
+  background: var(--surface);
+  font-weight: 750;
+}
+
+.circuit-tabs button[aria-selected="true"] {
+  border-color: var(--lime);
+  color: #10150a;
+  background: var(--lime);
+}
+
+.circuit-direction {
+  margin: 0 0 8px;
+  padding: 0;
+  color: var(--text);
+}
+
+.neck-circuit .set-number {
+  margin-top: 0;
 }
 
 .set-inputs {
@@ -458,20 +483,28 @@ h3 {
 }
 
 .timer-card {
-  margin-top: 14px;
-  padding: 16px;
+  position: sticky;
+  z-index: 5;
+  top: env(safe-area-inset-top);
+  margin-bottom: 12px;
+  padding: 10px 12px;
 }
 
 .timer-topline {
-  display: flex;
+  display: grid;
+  grid-template-columns: auto 1fr;
   align-items: center;
-  justify-content: space-between;
+  gap: 6px 10px;
+}
+
+.timer-topline .eyebrow {
+  margin-bottom: 0;
 }
 
 .timer-display {
   margin: 0;
   font-variant-numeric: tabular-nums;
-  font-size: 2.6rem;
+  font-size: 2rem;
   line-height: 1;
   letter-spacing: -0.055em;
 }
@@ -481,13 +514,28 @@ h3 {
   color: var(--muted);
   font-size: 0.82rem;
   font-weight: 750;
+  text-align: right;
+}
+
+.timer-actions {
+  grid-column: 1 / -1;
+  margin-top: 0;
+}
+
+.timer-actions .button {
+  min-height: 36px;
+  padding-block: 5px;
 }
 
 .timer-presets {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
   gap: 7px;
-  margin-top: 16px;
+  margin-top: 7px;
+}
+
+.timer-presets button {
+  min-height: 36px;
 }
 
 .section-heading {
@@ -629,7 +677,7 @@ h3 {
   }
 
   .set-row {
-    grid-template-columns: 34px minmax(0, 1fr);
+    grid-template-columns: 18px minmax(0, 1fr);
     padding-inline: 16px;
   }
 }

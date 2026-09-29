@@ -4,6 +4,7 @@ import assert from 'node:assert/strict';
 import { PROGRAM } from '../program.js';
 import {
   STORAGE_KEY,
+  countStatuses,
   createInitialStore,
   createWorkout,
   ensureDraft,
@@ -22,18 +23,16 @@ test('создаёт точную структуру подходов, стор�
   const back = createWorkout('back-a', 1_700_000_000_000, 'back');
 
   assert.equal(legs.sets.squat.length, 3);
-  assert.deepEqual(Object.keys(legs.sets['single-calf-raise'][0]), [
+  assert.deepEqual(Object.keys(legs.sets['smith-calf-raise'][0]), [
     'status',
     'weight',
     'prefilled',
     'edited',
-    'leftReps',
-    'rightReps'
+    'reps'
   ]);
   assert.equal(legs.sets.squat[0].reps, '3');
   assert.equal(legs.sets.squat[0].weight, '');
-  assert.equal(legs.sets['single-calf-raise'][0].leftReps, '8');
-  assert.equal(legs.sets['single-calf-raise'][0].rightReps, '8');
+  assert.equal(legs.sets['smith-calf-raise'][0].reps, '8');
   assert.equal(back.sets['neck-front'][0].seconds, '10');
   assert.equal(legs.sets.squat[0].status, 'pending');
   assert.equal(back.sets['neck-front'].length, 2);
@@ -55,22 +54,37 @@ test('предыдущее значение берётся из последне
   assert.equal(findPreviousSet([skipped, older, pending], 'back-a', 'weighted-pullup', 0), null);
 });
 
+test('старый черновик сохраняет записи с гантелью, но новый подъём в Смите начинает отдельно', () => {
+  const store = createInitialStore();
+  const draft = createWorkout('legs-a', 100, 'old');
+  delete draft.sets['smith-calf-raise'];
+  draft.sets['single-calf-raise'] = [
+    { status: 'done', weight: '12', leftReps: '10', rightReps: '10' },
+    { status: 'pending', weight: '', leftReps: '8', rightReps: '8' }
+  ];
+  store.drafts['legs-a'] = draft;
+
+  assert.strictEqual(ensureDraft(store, 'legs-a'), draft);
+  assert.equal(draft.sets['single-calf-raise'][0].weight, '12');
+  assert.equal(draft.sets['smith-calf-raise'][0].reps, '8');
+  assert.equal(draft.sets['smith-calf-raise'][0].weight, '');
+  assert.equal(countStatuses(draft).total, 10);
+});
+
 test('предзаполняет нулевой вес и значения сторон и секунд с fallback по плану', () => {
   const legsHistory = finishWorkout(createWorkout('legs-a', 100, 'legs-history'), 200);
   legsHistory.sets.squat[0] = { status: 'done', weight: 0, reps: '' };
-  legsHistory.sets['single-calf-raise'][0] = {
+  legsHistory.sets['smith-calf-raise'][0] = {
     status: 'done',
     weight: '',
-    leftReps: '11',
-    rightReps: ''
+    reps: '11'
   };
 
   const legs = createWorkout('legs-a', 300, 'legs-next', [legsHistory]);
   assert.equal(legs.sets.squat[0].weight, '0');
   assert.equal(legs.sets.squat[0].reps, '3');
-  assert.equal(legs.sets['single-calf-raise'][0].weight, '');
-  assert.equal(legs.sets['single-calf-raise'][0].leftReps, '11');
-  assert.equal(legs.sets['single-calf-raise'][0].rightReps, '8');
+  assert.equal(legs.sets['smith-calf-raise'][0].weight, '');
+  assert.equal(legs.sets['smith-calf-raise'][0].reps, '11');
 
   const backHistory = finishWorkout(createWorkout('back-a', 400, 'back-history'), 500);
   backHistory.sets['neck-front'][0] = { status: 'done', weight: '', seconds: '13' };
@@ -167,6 +181,18 @@ test('все упражнения имеют явную автодлительн
   assert.equal(PROGRAM[1].exercises.find((exercise) => exercise.id === 'dumbbell-bench').restSeconds, 90);
   assert.equal(PROGRAM[0].exercises.find((exercise) => exercise.id === 'reverse-wrist-curl').restSeconds, 60);
   assert.equal(PROGRAM[1].exercises.find((exercise) => exercise.id === 'neck-front').restSeconds, 30);
+});
+
+test('таймер для шеи стартует только после последнего направления круга', () => {
+  const workout = createWorkout('back-a', 100, 'neck-circuit');
+  const idle = createTimerState();
+  for (const id of ['neck-front', 'neck-back', 'neck-left']) {
+    assert.strictEqual(transitionSetStatus(workout, idle, id, 0, 'done', 1000), idle);
+  }
+  const resting = transitionSetStatus(workout, idle, 'neck-right', 0, 'done', 1000);
+  assert.equal(resting.mode, 'running');
+  assert.equal(resting.durationMs, 30_000);
+  assert.strictEqual(transitionSetStatus(workout, resting, 'neck-front', 1, 'done', 2000), resting);
 });
 
 test('сохраняет и загружает store через storage adapter', () => {

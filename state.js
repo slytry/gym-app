@@ -1,5 +1,5 @@
-import { PROGRAM, getExercise, getRoutine } from './program.js';
-import { createTimerState, startTimer } from './timer.js';
+import { LEGACY_CALF_RAISE, NECK_CIRCUIT_IDS, PROGRAM, getExercise, getRoutine } from './program.js?v=9';
+import { createTimerState, startTimer } from './timer.js?v=9';
 
 export const STORAGE_KEY = 'gym-log-pwa:v1';
 
@@ -62,7 +62,17 @@ export function createSetResult(exercise, previous = null) {
 }
 
 export function ensureDraft(store, routineId, timestamp = Date.now()) {
-  if (store.drafts[routineId]) return store.drafts[routineId];
+  if (store.drafts[routineId]) {
+    const draft = store.drafts[routineId];
+    for (const exercise of getRoutine(routineId).exercises) {
+      if (!draft.sets[exercise.id]) {
+        draft.sets[exercise.id] = Array.from({ length: exercise.sets }, (_, index) => (
+          createSetResult(exercise, findPreviousSet(store.history, routineId, exercise.id, index))
+        ));
+      }
+    }
+    return draft;
+  }
 
   return startNewDraft(store, routineId, timestamp);
 }
@@ -106,12 +116,15 @@ export function transitionSetStatus(workout, timer, exerciseId, setIndex, reques
 
   if (nextStatus !== 'done') return timer;
 
+  if (NECK_CIRCUIT_IDS.includes(exerciseId) && exerciseId !== NECK_CIRCUIT_IDS.at(-1)) return timer;
+
   const exercise = getExercise(workout.routineId, exerciseId);
   return startTimer(timer, exercise.restSeconds, timestamp);
 }
 
 export function countStatuses(workout) {
-  const results = Object.values(workout.sets).flat();
+  const results = getRoutine(workout.routineId).exercises.flatMap((exercise) => workout.sets[exercise.id] || []);
+  if (workout.finishedAt && workout.sets[LEGACY_CALF_RAISE.id]) results.push(...workout.sets[LEGACY_CALF_RAISE.id]);
   return {
     done: results.filter((set) => set.status === 'done').length,
     skipped: results.filter((set) => set.status === 'skipped').length,
