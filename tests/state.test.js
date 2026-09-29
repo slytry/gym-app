@@ -11,12 +11,29 @@ import {
   findPreviousSet,
   finishWorkout,
   loadStore,
+  recordSpecialWorkout,
   saveStore,
   startNewDraft,
   transitionSetStatus,
   workoutHasProgress
 } from '../state.js';
 import { createTimerState } from '../timer.js';
+
+test('фиксирует отдельные занятия для кистей, не меняя силовую историю и загружая старые данные', () => {
+  const store = createInitialStore();
+  const first = recordSpecialWorkout(store, 'hands', 1_700_000_000_000);
+  const second = recordSpecialWorkout(store, 'foot-ankle', 1_700_000_001_000);
+
+  assert.equal(first.routineId, 'hands');
+  assert.equal(first.finishedAt, 1_700_000_000_000);
+  assert.notEqual(first.id, second.id);
+  assert.equal(second.routineId, 'foot-ankle');
+  assert.equal(store.specialHistory.length, 2);
+  assert.equal(store.history.length, 0);
+  assert.equal(loadStore({ getItem: () => JSON.stringify(store) }).store.specialHistory.length, 2);
+  delete store.specialHistory;
+  assert.deepEqual(loadStore({ getItem: () => JSON.stringify(store) }).store.specialHistory, []);
+});
 
 test('создаёт точную структуру подходов, сторон и направлений шеи', () => {
   const legs = createWorkout('legs-a', 1_700_000_000_000, 'legs');

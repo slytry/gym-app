@@ -6,11 +6,12 @@ import {
   findPreviousSet,
   finishWorkout,
   loadStore,
+  recordSpecialWorkout,
   saveStore,
   startNewDraft,
   transitionSetStatus,
   workoutHasProgress
-} from './state.js?v=9';
+} from './state.js?v=14';
 import {
   formatTimer,
   pauseTimer,
@@ -26,6 +27,10 @@ const elements = {
   offlineBanner: document.querySelector('#offline-banner'),
   toast: document.querySelector('#toast'),
   installButton: document.querySelector('#install-button'),
+  menuToggle: document.querySelector('#menu-toggle'),
+  areaMenu: document.querySelector('#area-menu'),
+  areaLabel: document.querySelector('#area-label'),
+  bottomNav: document.querySelector('.bottom-nav'),
   daySelector: document.querySelector('#day-selector'),
   workoutWeekday: document.querySelector('#workout-weekday'),
   workoutHeading: document.querySelector('#workout-heading'),
@@ -57,6 +62,8 @@ if (loaded.error) showStorageError(loaded.error);
 renderProgram();
 renderWorkout();
 renderHistory();
+renderSpecialHistory('hands');
+renderSpecialHistory('foot-ankle');
 syncTimer(false);
 updateNetworkStatus();
 bindEvents();
@@ -65,6 +72,26 @@ registerServiceWorker();
 setInterval(() => syncTimer(document.visibilityState === 'visible'), 250);
 
 function bindEvents() {
+  elements.menuToggle.addEventListener('click', () => {
+    const isOpen = !elements.areaMenu.hidden;
+    elements.areaMenu.hidden = isOpen;
+    elements.menuToggle.setAttribute('aria-expanded', String(!isOpen));
+  });
+
+  elements.areaMenu.addEventListener('click', (event) => {
+    const button = event.target.closest('[data-area]');
+    if (!button) return;
+    showView(button.dataset.view || 'workout');
+  });
+
+  document.querySelectorAll('[data-record-special]').forEach((button) => button.addEventListener('click', () => {
+    const routineId = button.dataset.recordSpecial;
+    recordSpecialWorkout(store, routineId);
+    const saved = persist();
+    renderSpecialHistory(routineId);
+    showToast(saved ? 'Занятие записано' : 'Только в памяти: данные не сохранены');
+  }));
+
   elements.daySelector.addEventListener('click', (event) => {
     const button = event.target.closest('[data-routine-id]');
     if (!button) return;
@@ -454,6 +481,15 @@ function renderHistory() {
   }).join('');
 }
 
+function renderSpecialHistory(routineId) {
+  const entries = store.specialHistory.filter((entry) => entry.routineId === routineId);
+  document.querySelector(`#${routineId}-empty`).hidden = entries.length > 0;
+  document.querySelector(`#${routineId}-history`).innerHTML = entries
+    .sort((a, b) => b.finishedAt - a.finishedAt)
+    .map((entry) => `<li>${escapeHtml(formatLocalDateTime(entry.finishedAt))}</li>`)
+    .join('');
+}
+
 function renderProgram() {
   elements.programList.innerHTML = PROGRAM.map((routine) => `
     <details class="program-day">
@@ -479,9 +515,18 @@ function programRestLabel(exercise) {
 }
 
 function showView(viewName) {
+  const special = viewName === 'hands' || viewName === 'foot-ankle';
   document.querySelectorAll('.view').forEach((view) => {
     view.hidden = view.id !== `view-${viewName}`;
   });
+  elements.bottomNav.hidden = special;
+  elements.areaLabel.textContent = special ? 'Специализированные тренировки' : 'Регулярные тренировки';
+  elements.areaMenu.querySelectorAll('[data-area]').forEach((button) => {
+    if (button.dataset.view === (special ? viewName : 'workout')) button.setAttribute('aria-current', 'page');
+    else button.removeAttribute('aria-current');
+  });
+  elements.areaMenu.hidden = true;
+  elements.menuToggle.setAttribute('aria-expanded', 'false');
   document.querySelectorAll('.bottom-nav [data-view]').forEach((button) => {
     if (button.dataset.view === viewName) button.setAttribute('aria-current', 'page');
     else button.removeAttribute('aria-current');

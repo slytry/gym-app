@@ -4,20 +4,32 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#101515">
-  <meta name="description" content="Офлайн-дневник четырёх силовых тренировок">
+  <meta name="description" content="Офлайн-дневник четырёх силовых тренировок и упражнения для кистей по AAOS">
   <link rel="manifest" href="./manifest.webmanifest">
   <link rel="icon" href="./icons/icon-192.png" sizes="192x192">
   <link rel="apple-touch-icon" href="./icons/icon-192.png">
-  <link rel="stylesheet" href="./styles.css?v=9">
+  <link rel="stylesheet" href="./styles.css?v=14">
   <title>40 минут — дневник зала</title>
 </head>
 <body>
   <header class="app-header">
     <div>
-      <p class="eyebrow">Сила ног и спины</p>
+      <p id="area-label" class="eyebrow">Регулярные тренировки</p>
     </div>
-    <button id="install-button" class="button button-quiet" type="button" hidden>Установить</button>
+    <div class="header-actions">
+      <button id="install-button" class="button button-quiet" type="button" hidden>Установить</button>
+      <button id="menu-toggle" class="button button-quiet" type="button" aria-expanded="false" aria-controls="area-menu">Меню</button>
+    </div>
   </header>
+
+  <nav id="area-menu" class="area-menu" aria-label="Области тренировок" hidden>
+    <button type="button" data-area="regular" data-view="workout" aria-current="page">
+      <strong>Регулярные тренировки</strong><span>Дневник · История · Программа</span>
+    </button>
+    <p class="area-menu-label">Специализированные тренировки</p>
+    <button type="button" data-area="special" data-view="hands">Кисти и запястья</button>
+    <button type="button" data-area="special" data-view="foot-ankle">Стопа и голеностоп</button>
+  </nav>
 
   <div id="storage-warning" class="banner banner-error" role="alert" hidden></div>
   <div id="offline-banner" class="banner" role="status" hidden>Офлайн-режим: журнал работает, внешние иллюстрации могут быть недоступны.</div>
@@ -90,6 +102,250 @@
       </article>
       <div id="program-list" class="program-list"></div>
     </section>
+
+    <section id="view-hands" class="view" aria-labelledby="hands-heading" hidden>
+      <div class="section-heading">
+        <div>
+          <p class="eyebrow">Лечебные упражнения · AAOS</p>
+          <h2 id="hands-heading">Кисти и запястья</h2>
+        </div>
+      </div>
+      <article class="program-intro">
+        <p>Комплекс при синдроме запястного канала. Выполнение занятия можно записать отдельно от силового журнала. Инвентарь не нужен.</p>
+        <p><strong>Перед началом согласуйте комплекс с врачом или физическим терапевтом.</strong> Выполняйте под его наблюдением. В AAOS указан курс 3–4 недели, если специалист не назначил иначе; после восстановления комплекс может использоваться для поддержания результата.</p>
+        <p>Значительной боли быть не должно. Если упражнения усиливают боль или онемение нарастает, прекратите выполнение и обратитесь к специалисту. Если за 3–4 недели боль не уменьшается, также обратитесь к нему.</p>
+        <p><a href="https://www.orthoinfo.org/globalassets/pdfs/a00789_therapeutic-exercise-program-for-carpal-tunnel_final.pdf" target="_blank" rel="noreferrer noopener">Оригинал AAOS (PDF, английский)</a> · пересмотрен в октябре 2018 года. Ниже — перевод инструкций и иллюстрации из оригинала © American Academy of Orthopaedic Surgeons, не индивидуальное назначение. Текст и рисунки доступны офлайн, для PDF нужен интернет.</p>
+      </article>
+
+      <section class="special-log" aria-labelledby="hands-log-heading">
+        <h3 id="hands-log-heading">Журнал занятий</h3>
+        <p>Отмечайте занятие после выполнения комплекса. Можно записать несколько занятий в день.</p>
+        <button class="button button-primary" type="button" data-record-special="hands">Записать выполнение</button>
+        <p id="hands-empty" class="muted">Записей пока нет.</p>
+        <ul id="hands-history" class="special-history"></ul>
+      </section>
+
+      <div class="exercise-list">
+        <article class="exercise-card">
+          <header class="exercise-header">
+            <div>
+              <h3>1. Растяжка с разгибанием запястья</h3>
+              <p class="exercise-meta">5 повторов на каждую руку · 4 раза в день · 5–7 дней в неделю</p>
+            </div>
+          </header>
+          <div class="technique-body">
+            <img class="hands-stretch-image" src="./images/hands/wrist-extension.webp" alt="Рука вытянута, кисть отогнута назад; другая рука мягко тянет ладонь к себе" width="600" height="500" loading="lazy">
+            <ol>
+              <li>Выпрямите руку и отогните кисть назад, как в жесте «стоп». Не блокируйте локоть в крайнем положении.</li>
+              <li>Другой рукой мягко потяните ладонь к себе до ощущения растяжения на внутренней стороне предплечья.</li>
+              <li>Удерживайте 15 секунд. Повторите 5 раз, затем смените руку.</li>
+            </ol>
+            <p>Выполняйте в течение дня, особенно перед нагрузкой. После восстановления растяжку можно включать в разминку перед действиями с захватом предметов.</p>
+          </div>
+        </article>
+
+        <article class="exercise-card">
+          <header class="exercise-header">
+            <div>
+              <h3>2. Растяжка со сгибанием запястья</h3>
+              <p class="exercise-meta">5 повторов на каждую руку · 4 раза в день · 5–7 дней в неделю</p>
+            </div>
+          </header>
+          <div class="technique-body">
+            <img class="hands-stretch-image" src="./images/hands/wrist-flexion.webp" alt="Рука вытянута ладонью вниз, кисть согнута; другая рука мягко тянет кисть к себе" width="600" height="500" loading="lazy">
+            <ol>
+              <li>Выпрямите руку ладонью вниз и согните запястье так, чтобы пальцы смотрели вниз. Не блокируйте локоть в крайнем положении.</li>
+              <li>Другой рукой мягко потяните кисть к телу до ощущения растяжения на наружной стороне предплечья.</li>
+              <li>Удерживайте 15 секунд. Повторите 5 раз, затем смените руку.</li>
+            </ol>
+            <p>Выполняйте в течение дня, особенно перед нагрузкой. После восстановления растяжку можно включать в разминку перед действиями с захватом предметов.</p>
+          </div>
+        </article>
+
+        <article class="exercise-card">
+          <header class="exercise-header">
+            <div>
+              <h3>3. Скольжение срединного нерва</h3>
+              <p class="exercise-meta">10–15 повторов в день · 6–7 дней в неделю · каждое положение 3–7 секунд</p>
+            </div>
+          </header>
+          <div class="technique-body">
+            <p>Последовательно пройдите шесть положений, удерживая каждое 3–7 секунд:</p>
+            <div class="hands-steps" aria-label="Положения для скольжения срединного нерва">
+              <figure><img src="./images/hands/nerve-1.webp" alt="Кулак с большим пальцем снаружи" loading="lazy"><figcaption>1</figcaption></figure>
+              <figure><img src="./images/hands/nerve-2.webp" alt="Выпрямленные пальцы, большой палец у кисти" loading="lazy"><figcaption>2</figcaption></figure>
+              <figure><img src="./images/hands/nerve-3.webp" alt="Выпрямленные пальцы и разогнутое запястье" loading="lazy"><figcaption>3</figcaption></figure>
+              <figure><img src="./images/hands/nerve-4.webp" alt="Большой палец отведён от кисти" loading="lazy"><figcaption>4</figcaption></figure>
+              <figure><img src="./images/hands/nerve-5.webp" alt="Предплечье повёрнуто ладонью вверх" loading="lazy"><figcaption>5</figcaption></figure>
+              <figure><img src="./images/hands/nerve-6.webp" alt="Другая рука мягко тянет большой палец" loading="lazy"><figcaption>6</figcaption></figure>
+            </div>
+            <ol>
+              <li>Сожмите кулак, оставив большой палец снаружи остальных пальцев.</li>
+              <li>Выпрямите пальцы, удерживая большой палец у боковой поверхности кисти.</li>
+              <li>Сохраняя пальцы прямыми, разогните запястье — отогните кисть назад к предплечью.</li>
+              <li>Сохраняя положение пальцев и запястья, отведите и выпрямите большой палец.</li>
+              <li>Сохраняя пальцы, запястье и большой палец разогнутыми, поверните предплечье ладонью вверх.</li>
+              <li>Другой рукой мягко потяните большой палец, не меняя положения остальных пальцев и запястья. Не давите сильно.</li>
+            </ol>
+            <p>В PDF перед упражнением указано тепло на кисть 15 минут, после — пакет с дроблёным льдом или замороженным горошком на 20 минут. Возможность и безопасный способ применения тепла и холода согласуйте со специалистом, особенно при сниженной чувствительности; не прикладывайте лёд прямо к коже.</p>
+          </div>
+        </article>
+
+        <article class="exercise-card">
+          <header class="exercise-header">
+            <div>
+              <h3>4. Скольжение сухожилий</h3>
+              <p class="exercise-meta">5–10 повторов · 2–3 раза в день · каждое положение 3 секунды</p>
+            </div>
+          </header>
+          <div class="technique-body">
+            <p>В каждой серии переходите от положения 1 к 3, удерживая каждое 3 секунды. Запястье держите прямо.</p>
+            <h4>Серия A</h4>
+            <div class="hands-steps" aria-label="Серия A: положения сухожилий">
+              <figure><img src="./images/hands/tendon-a-1.webp" alt="Пальцы полностью выпрямлены" loading="lazy"><figcaption>1</figcaption></figure>
+              <figure><img src="./images/hands/tendon-a-2.webp" alt="Пальцы согнуты крючком" loading="lazy"><figcaption>2</figcaption></figure>
+              <figure><img src="./images/hands/tendon-a-3.webp" alt="Кулак с большим пальцем поверх остальных" loading="lazy"><figcaption>3</figcaption></figure>
+            </div>
+            <ol>
+              <li>Держите кисть перед собой, полностью выпрямите все пальцы.</li>
+              <li>Согните пальцы «крючком»: средние и концевые суставы согнуты, суставы у основания пальцев остаются прямыми.</li>
+              <li>Сожмите полный кулак, большой палец поверх остальных.</li>
+            </ol>
+            <h4>Серия B</h4>
+            <div class="hands-steps" aria-label="Серия B: положения сухожилий">
+              <figure><img src="./images/hands/tendon-b-1.webp" alt="Пальцы полностью выпрямлены" loading="lazy"><figcaption>1</figcaption></figure>
+              <figure><img src="./images/hands/tendon-b-2.webp" alt="Пальцы согнуты столиком у основания" loading="lazy"><figcaption>2</figcaption></figure>
+              <figure><img src="./images/hands/tendon-b-3.webp" alt="Пальцы согнуты в средних суставах к ладони" loading="lazy"><figcaption>3</figcaption></figure>
+            </div>
+            <ol>
+              <li>Держите кисть перед собой, полностью выпрямите все пальцы.</li>
+              <li>Сделайте «столик»: согните пальцы в суставах у основания, сохраняя сами пальцы прямыми.</li>
+              <li>Согните пальцы в средних суставах, касаясь пальцами ладони.</li>
+            </ol>
+            <p>Допустимо лёгкое натяжение, но не усиление боли. По мере облегчения выполнения можно увеличивать число повторов или занятий в день. Фиксированного числа дней в неделю в PDF нет — прогрессируйте по переносимости.</p>
+            <p>Для обеих серий в PDF указаны тепло на кисть 15 минут до упражнений и холод 20 минут после. Согласуйте их применение со специалистом, особенно при сниженной чувствительности; не прикладывайте лёд прямо к коже.</p>
+          </div>
+        </article>
+      </div>
+    </section>
+
+    <section id="view-foot-ankle" class="view" aria-labelledby="foot-ankle-heading" hidden>
+      <div class="section-heading">
+        <div>
+          <p class="eyebrow">Восстановление · AAOS</p>
+          <h2 id="foot-ankle-heading">Стопа и голеностоп</h2>
+        </div>
+      </div>
+      <article class="program-intro">
+        <p>Комплекс для стопы и голеностопа после травмы или операции. <strong>Выполняйте под наблюдением врача или физического терапевта:</strong> согласуйте подходящие упражнения и нагрузку. В источнике указан курс 4–6 недель, если специалист не назначил иначе.</p>
+        <p>Перед упражнениями — 5–10 минут ходьбы или велотренажёра без высокой нагрузки. После разминки выполните растяжки 1–4, затем силовые упражнения 5–10 и в конце повторите растяжки. Не выполняйте движения через боль; при боли или сомнениях обратитесь к специалисту.</p>
+        <p>После восстановления комплекс можно продолжать для поддержания результата: AAOS указывает 3–5 дней в неделю. Частота отдельных упражнений ниже приведена из PDF и может отличаться.</p>
+        <p><a href="https://www.orthoinfo.org/globalassets/pdfs/foot-and-ankle-conditioning-program---2025.pdf" target="_blank" rel="noreferrer noopener">Оригинал AAOS (PDF, английский)</a>. Ниже — перевод инструкций и иллюстрации из оригинала © American Academy of Orthopaedic Surgeons, не индивидуальное назначение. Текст и рисунки доступны офлайн, для PDF нужен интернет.</p>
+      </article>
+      <section class="special-log" aria-labelledby="foot-ankle-log-heading">
+        <h3 id="foot-ankle-log-heading">Журнал занятий</h3>
+        <p>Отмечайте занятие после выполнения комплекса. Записи не смешиваются с тренировками кистей и силовым дневником.</p>
+        <button class="button button-primary" type="button" data-record-special="foot-ankle">Записать выполнение</button>
+        <p id="foot-ankle-empty" class="muted">Записей пока нет.</p>
+        <ul id="foot-ankle-history" class="special-history"></ul>
+      </section>
+      <h3 class="special-group-heading">Растяжка · до и после силовой части</h3>
+      <div class="exercise-list">
+        <article class="exercise-card">
+          <header class="exercise-header"><div><h3>1. Растяжка икры у стены</h3><p class="exercise-meta">2 подхода по 10 · 6–7 дней в неделю · без инвентаря</p></div></header>
+          <div class="technique-body">
+            <img class="foot-exercise-image" src="./images/foot-ankle/heel-cord.webp" alt="Растяжка икры у стены: поражённая нога прямая сзади, пятка на полу" loading="lazy">
+            <p>Растяжение ощущается в икре и пятке.</p>
+            <ol><li>Встаньте лицом к стене: здоровая нога впереди, немного согнута; нога, которую восстанавливаете, прямая позади, пятка на полу, носок слегка внутрь.</li><li>Прижимая обе пятки к полу, подайте таз вперёд к стене.</li><li>Удерживайте 30 секунд, затем расслабьтесь на 30 секунд. Повторите.</li></ol>
+            <p>Не прогибайте спину.</p>
+          </div>
+        </article>
+        <article class="exercise-card">
+          <header class="exercise-header"><div><h3>2. Растяжка икры с согнутым коленом</h3><p class="exercise-meta">2 подхода по 10 · 6–7 дней в неделю · без инвентаря</p></div></header>
+          <div class="technique-body">
+            <img class="foot-exercise-image" src="./images/foot-ankle/heel-cord-bent.webp" alt="Растяжка у стены: поражённая нога сзади, колено согнуто, пятка на полу" loading="lazy">
+            <p>Растяжение ощущается в икре, по бокам лодыжки и в пятке.</p>
+            <ol><li>Встаньте лицом к стене: здоровая нога впереди, немного согнута; восстанавливаемая нога позади, колено согнуто, носок слегка внутрь.</li><li>Прижимая обе пятки к полу, подайте таз вперёд к стене.</li><li>Удерживайте 30 секунд, затем расслабьтесь на 30 секунд. Повторите.</li></ol>
+            <p>Держите таз по центру между стопами.</p>
+          </div>
+        </article>
+        <article class="exercise-card">
+          <header class="exercise-header"><div><h3>3. Прокатывание мяча стопой</h3><p class="exercise-meta">1 раз по 2 минуты · ежедневно по необходимости при боли · мяч для гольфа, теннисный мяч или замороженная бутылка воды</p></div></header>
+          <div class="technique-body">
+            <img class="foot-exercise-image" src="./images/foot-ankle/ball-roll.webp" alt="Свод стопы прокатывает мяч по полу вперёд и назад" loading="lazy">
+            <p>Воздействие ощущается вдоль подошвы стопы.</p>
+            <ol><li>Сядьте на устойчивый стул, обе стопы стоят на полу.</li><li>Прокатывайте мяч под сводом восстанавливаемой стопы 2 минуты.</li></ol>
+            <p>Сидите прямо, держите стопу ближе к стулу.</p>
+          </div>
+        </article>
+        <article class="exercise-card">
+          <header class="exercise-header"><div><h3>4. Растяжка с полотенцем</h3><p class="exercise-meta">2 подхода по 10 · 6–7 дней в неделю · небольшое полотенце</p></div></header>
+          <div class="technique-body">
+            <img class="foot-exercise-image" src="./images/foot-ankle/towel-stretch.webp" alt="Сидя с выпрямленной ногой, тянут полотенце, наброшенное на переднюю часть стопы" loading="lazy">
+            <p>Растяжение ощущается в икре и пятке.</p>
+            <ol><li>Сядьте на пол, вытянув обе ноги перед собой. Упражнение также можно делать на стуле.</li><li>Оберните полотенце вокруг передней части восстанавливаемой стопы, возьмите его концы руками.</li><li>Держа ногу прямой, потяните полотенце к себе.</li><li>Удерживайте 30 секунд, затем расслабьтесь на 30 секунд. Повторите.</li></ol>
+            <p>Сидите прямо, ноги держите прямыми.</p>
+          </div>
+        </article>
+      </div>
+      <h3 class="special-group-heading">Укрепление</h3>
+      <div class="exercise-list">
+        <article class="exercise-card">
+          <header class="exercise-header"><div><h3>5. Подъёмы на носки на двух или одной ноге</h3><p class="exercise-meta">2 подхода по 10 · 6–7 дней в неделю · стул для опоры</p></div></header>
+          <div class="technique-body">
+            <img class="foot-exercise-image" src="./images/foot-ankle/calf-raises.webp" alt="Подъём на носок у стула для равновесия" loading="lazy">
+            <p>Нагрузка ощущается в икре.</p>
+            <ol><li>Встаньте, равномерно распределив вес между стопами. Держитесь за спинку стула или стену для равновесия.</li><li>Для подъёма на двух ногах оставьте обе стопы на полу. Для подъёма на одной — поднимите здоровую ногу, перенеся вес на восстанавливаемую. Опорную ногу держите прямой.</li><li>Поднимите обе пятки или пятку восстанавливаемой ноги как можно выше, затем опустите. Повторите.</li></ol>
+            <p>Врач может предложить начать с двух ног и постепенно переносить больше веса на восстанавливаемую, прежде чем перейти к одной ноге.</p>
+          </div>
+        </article>
+        <article class="exercise-card">
+          <header class="exercise-header"><div><h3>6. Алфавит стопой</h3><p class="exercise-meta">2 подхода · ежедневно · без инвентаря</p></div></header>
+          <div class="technique-body">
+            <img class="foot-exercise-image" src="./images/foot-ankle/ankle-alphabet.webp" alt="Стопа рисует буквы в воздухе движением голеностопа" loading="lazy">
+            <p>Движение ощущается в верхней части стопы и голеностопе.</p>
+            <ol><li>Сядьте так, чтобы стопы не касались пола.</li><li>Большим пальцем стопы «напишите» в воздухе каждую букву алфавита.</li></ol>
+            <p>Делайте небольшие движения только стопой и голеностопом.</p>
+          </div>
+        </article>
+        <article class="exercise-card">
+          <header class="exercise-header"><div><h3>7. Подбирание шариков пальцами стопы</h3><p class="exercise-meta">20 шариков · ежедневно · шарики или ватные шарики, миска</p></div></header>
+          <div class="technique-body">
+            <img class="foot-exercise-image" src="./images/foot-ankle/marble-pickup.webp" alt="Пальцы стопы поднимают шарик с пола" loading="lazy">
+            <p>Работа ощущается в пальцах и верхней части стопы.</p>
+            <ol><li>Сядьте, поставив обе стопы на пол, разложите 20 шариков перед собой.</li><li>Пальцами стопы поднимайте по одному шарику и кладите в миску, пока не соберёте все.</li></ol>
+            <p>Не располагайте шарики слишком далеко впереди или сбоку.</p>
+          </div>
+        </article>
+        <article class="exercise-card">
+          <header class="exercise-header"><div><h3>8. Сбор полотенца пальцами стопы</h3><p class="exercise-meta">20 повторов · ежедневно · небольшое полотенце</p></div></header>
+          <div class="technique-body">
+            <img class="foot-exercise-image" src="./images/foot-ankle/towel-curls.webp" alt="Пальцы стопы собирают лежащее на полу полотенце" loading="lazy">
+            <p>Работа ощущается в пальцах и верхней части стопы.</p>
+            <ol><li>Сядьте, поставив обе стопы на пол, положите небольшое полотенце перед собой.</li><li>Захватите середину полотенца пальцами стопы и подтяните его к себе, затем расслабьте пальцы. Повторите.</li></ol>
+            <p>Для усложнения можно положить груз на край полотенца.</p>
+          </div>
+        </article>
+        <article class="exercise-card">
+          <header class="exercise-header"><div><h3>9. Движение стопы на себя и от себя с лентой</h3><p class="exercise-meta">3 подхода по 10 · 3 дня в неделю · эластичная лента комфортного сопротивления</p></div></header>
+          <div class="technique-body">
+            <img class="foot-exercise-image" src="./images/foot-ankle/ankle-band.webp" alt="Два движения стопой с эластичной лентой: на себя и от себя" loading="lazy">
+            <p>Нагрузка ощущается в икре, голени, за пяткой и на верхней части стопы.</p>
+            <ol><li>Сядьте на пол, вытянув ноги перед собой, либо сядьте на стул.</li><li>Для движения стопы на себя закрепите ленту за ножку стула или стола, накиньте на стопу. Потяните пальцы к себе и медленно вернитесь в исходное положение. Повторите.</li><li>Для движения стопы от себя оберните ленту вокруг неё и держите концы в руках. Мягко направьте пальцы от себя и медленно вернитесь в исходное положение. Повторите.</li></ol>
+            <p>Держите ногу прямой, пятку — на полу для опоры.</p>
+          </div>
+        </article>
+        <article class="exercise-card">
+          <header class="exercise-header"><div><h3>10. Равновесие на одной ноге</h3><p class="exercise-meta">3–5 повторов · 6–7 дней в неделю · стул или столешница для опоры</p></div></header>
+          <div class="technique-body">
+            <img class="foot-exercise-image" src="./images/foot-ankle/single-leg-balance.webp" alt="Равновесие на одной ноге рядом с устойчивой опорой" loading="lazy">
+            <p>Наденьте удобную обувь, желательно для ходьбы.</p>
+            <ol><li>Встаньте рядом с устойчивой опорой, положите на неё обе руки, обе стопы на полу.</li><li>Держа колени прямыми, поднимите одну стопу и стойте на восстанавливаемой ноге.</li><li>Уберите руки с опоры, при необходимости возвращайте их, чтобы не потерять равновесие.</li><li>Удерживайте равновесие до 30 секунд, время от времени опираясь руками по необходимости. Повторите.</li></ol>
+            <p>Без обуви выполнять сложнее; этот вариант — только если безопасно по рекомендации специалиста.</p>
+          </div>
+        </article>
+      </div>
+    </section>
   </main>
 
   <nav class="bottom-nav" aria-label="Основная навигация">
@@ -98,6 +354,6 @@
     <button type="button" data-view="program">Программа</button>
   </nav>
 
-  <script type="module" src="./app.js?v=9"></script>
+  <script type="module" src="./app.js?v=14"></script>
 </body>
 </html>

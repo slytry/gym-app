@@ -17,6 +17,7 @@ export function createInitialStore() {
     selectedRoutineId: PROGRAM[0].id,
     drafts: {},
     history: [],
+    specialHistory: [],
     timer: createTimerState()
   };
 }
@@ -99,6 +100,16 @@ export function finishWorkout(workout, timestamp = Date.now()) {
   };
 }
 
+export function recordSpecialWorkout(store, routineId, timestamp = Date.now()) {
+  const entry = {
+    id: createId(timestamp),
+    routineId,
+    finishedAt: timestamp
+  };
+  store.specialHistory.push(entry);
+  return entry;
+}
+
 export function findPreviousSet(history, routineId, exerciseId, setIndex) {
   const previousSet = [...history]
     .filter((workout) => workout.routineId === routineId && workout.finishedAt)
@@ -146,10 +157,14 @@ export function parseStore(raw) {
   }
 
   const validRoutine = PROGRAM.some((routine) => routine.id === parsed.selectedRoutineId);
+  if (parsed.specialHistory !== undefined && !Array.isArray(parsed.specialHistory)) {
+    throw new Error('Неподдерживаемый формат локальных данных');
+  }
   return {
     ...createInitialStore(),
     ...parsed,
     selectedRoutineId: validRoutine ? parsed.selectedRoutineId : PROGRAM[0].id,
+    specialHistory: parsed.specialHistory || [],
     timer: { ...createTimerState(), ...(parsed.timer || {}) }
   };
 }
