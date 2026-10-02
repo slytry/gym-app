@@ -1,4 +1,4 @@
-import { LEGACY_CALF_RAISE, WEIGHT_LABELS, getRoutine } from './program.js?v=9';
+import { WEIGHT_LABELS, getRoutine, getWorkoutExercises } from './program.js?v=15';
 
 export function workoutToMarkdown(workout) {
   const routine = getRoutine(workout.routineId);
@@ -11,9 +11,7 @@ export function workoutToMarkdown(workout) {
     ''
   ];
 
-  const exercises = routine.exercises.filter((exercise) => workout.sets[exercise.id]);
-  if (workout.sets[LEGACY_CALF_RAISE.id]) exercises.push(LEGACY_CALF_RAISE);
-  for (const exercise of exercises) {
+  for (const exercise of getWorkoutExercises(workout)) {
     lines.push(`## ${exercise.name}`);
     lines.push(`План: ${exercise.sets} × ${exercise.target}${exercise.optionalAfter ? ' (второй круг по самочувствию)' : ''}.`);
     if (exercise.weight) lines.push(`Вес: ${WEIGHT_LABELS[exercise.weight]}.`);

@@ -29,6 +29,32 @@ test('общий экспорт сортирует тренировки по в�
   assert.match(markdown, /^# История тренировок/);
 });
 
+test('экспорт пятницы содержит новый план и результат дополнительного жима', () => {
+  const workout = finishWorkout(createWorkout('back-b', 100, 'friday'), 200);
+  workout.sets['dumbbell-bench'][0] = { status: 'done', weight: '20', reps: '10' };
+
+  const markdown = workoutToMarkdown(workout);
+  assert.match(markdown, /План: 3 × 6–10 повторов/);
+  assert.match(markdown, /План: 2 × 6–10 повторов/);
+  assert.match(markdown, /## Жим гантелей лёжа\nПлан: 2 × 8–12 повторов/);
+  assert.match(markdown, /20 кг на одну гантель × 10 повт\./);
+  assert.doesNotMatch(markdown, /Шраги|Удержание тяжёлых гантелей/);
+});
+
+test('экспорт старой пятницы сохраняет шраги и удержания без добавления нового жима', () => {
+  const workout = finishWorkout(createWorkout('back-b', 100, 'old-friday'), 200);
+  delete workout.sets['dumbbell-bench'];
+  workout.sets.shrug = [{ status: 'done', weight: '24', reps: '10' }, { status: 'skipped' }];
+  workout.sets['dumbbell-hold'] = [{ status: 'done', weight: '30', seconds: '25' }, { status: 'pending' }];
+
+  const markdown = workoutToMarkdown(workout);
+  assert.match(markdown, /## Шраги с гантелями\nПлан: 2 × 8–10 повторов/);
+  assert.match(markdown, /24 кг на одну гантель × 10 повт\./);
+  assert.match(markdown, /## Удержание тяжёлых гантелей стоя\nПлан: 2 × 20–30 секунд/);
+  assert.match(markdown, /30 кг на одну гантель × 25 с/);
+  assert.doesNotMatch(markdown, /Жим гантелей лёжа/);
+});
+
 test('экспорт старого подъёма с гантелью не смешивается с упражнением в Смите', () => {
   const workout = createWorkout('legs-a', 100, 'legacy');
   workout.sets['single-calf-raise'] = [

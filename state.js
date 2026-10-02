@@ -1,4 +1,4 @@
-import { LEGACY_CALF_RAISE, NECK_CIRCUIT_IDS, PROGRAM, getExercise, getRoutine } from './program.js?v=9';
+import { NECK_CIRCUIT_IDS, PROGRAM, getExercise, getRoutine, getWorkoutExercises } from './program.js?v=15';
 import { createTimerState, startTimer } from './timer.js?v=9';
 
 export const STORAGE_KEY = 'gym-log-pwa:v1';
@@ -134,8 +134,8 @@ export function transitionSetStatus(workout, timer, exerciseId, setIndex, reques
 }
 
 export function countStatuses(workout) {
-  const results = getRoutine(workout.routineId).exercises.flatMap((exercise) => workout.sets[exercise.id] || []);
-  if (workout.finishedAt && workout.sets[LEGACY_CALF_RAISE.id]) results.push(...workout.sets[LEGACY_CALF_RAISE.id]);
+  const exercises = workout.finishedAt ? getWorkoutExercises(workout) : getRoutine(workout.routineId).exercises;
+  const results = exercises.flatMap((exercise) => workout.sets[exercise.id] || []);
   return {
     done: results.filter((set) => set.status === 'done').length,
     skipped: results.filter((set) => set.status === 'skipped').length,

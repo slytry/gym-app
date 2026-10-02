@@ -254,14 +254,14 @@ export const PROGRAM = [
         id: 'chest-row-b',
         name: 'Тяга с упором грудью',
         sets: 3,
-        target: '4–6 повторов',
+        target: '6–10 повторов',
         kind: 'reps',
         weight: 'dumbbell',
-        rest: '2,5–3 мин',
+        rest: '2–3 мин',
         restSeconds: 180,
         image: 'https://static.strengthlevel.com/images/illustrations/chest-supported-dumbbell-row-1000x1000.jpg',
         links: [{ label: 'Страница упражнения', url: 'https://strengthlevel.com/strength-standards/chest-supported-dumbbell-row' }],
-        note: 'Упор грудью снижает дополнительную нагрузку на поясницу после становой.',
+        note: 'Основное упражнение пятницы. Упор грудью снижает дополнительную нагрузку на поясницу после становой. Оставлять примерно 2 чистых повтора в запасе.',
         tips: [
           'Скамья примерно 30–45°, грудь на спинке, стопы на полу.',
           'Тянуть локти назад к нижним рёбрам, не отрывать грудь; голову не запрокидывать.'
@@ -271,47 +271,34 @@ export const PROGRAM = [
         id: 'seated-press',
         name: 'Жим гантелей сидя',
         sets: 2,
-        target: '6–8 повторов',
+        target: '6–10 повторов',
         kind: 'reps',
         weight: 'dumbbell',
-        rest: '90–120 с',
+        rest: '1,5–2,5 мин',
         restSeconds: 120,
         image: 'https://static.strengthlevel.com/images/illustrations/seated-dumbbell-shoulder-press-1000x1000.jpg',
         links: [{ label: 'Страница упражнения', url: 'https://strengthlevel.com/strength-standards/seated-dumbbell-shoulder-press' }],
+        note: 'Основной вертикальный жим недели. Оставлять примерно 2 чистых повтора в запасе; не выполнять через боль в запястье или спине.',
         tips: [
           'Спинка примерно 80–90°, стопы на полу, таз и спина на опоре.',
           'Кисти над локтями; не усиливать прогиб поясницы.'
         ]
       },
       {
-        id: 'shrug',
-        name: 'Шраги с гантелями',
+        id: 'dumbbell-bench',
+        name: 'Жим гантелей лёжа',
         sets: 2,
-        target: '8–10 повторов',
+        target: '8–12 повторов',
         kind: 'reps',
         weight: 'dumbbell',
-        rest: '45–60 с',
-        restSeconds: 60,
-        image: 'https://static.strengthlevel.com/images/illustrations/dumbbell-shrug-1000x1000.jpg',
-        links: [{ label: 'Страница упражнения', url: 'https://strengthlevel.com/strength-standards/dumbbell-shrug' }],
+        rest: '1,5–2,5 мин',
+        restSeconds: 120,
+        image: 'https://static.strengthlevel.com/images/illustrations/dumbbell-bench-press-1000x1000.jpg',
+        links: [{ label: 'Страница упражнения', url: 'https://strengthlevel.com/strength-standards/dumbbell-bench-press' }],
+        note: 'Дополнительная нагрузка на грудь после вторника. Оставлять примерно 2 чистых повтора в запасе. Сравнивать результаты с предыдущими пятницами, а не со вторником.',
         tips: [
-          'Стоять устойчиво, держать гантели вдоль тела, голову нейтрально.',
-          'Поднимать плечи вверх без круговых вращений и помощи ногами.'
-        ]
-      },
-      {
-        id: 'dumbbell-hold',
-        name: 'Удержание тяжёлых гантелей стоя',
-        sets: 2,
-        target: '20–30 секунд',
-        kind: 'seconds',
-        weight: 'dumbbell',
-        rest: '45–60 с',
-        restSeconds: 60,
-        note: 'Заканчивать до раскрытия пальцев, а не после падения гантели. Прогулка фермера не заменяет статическое удержание.',
-        tips: [
-          'Стоять устойчиво, гантели вдоль тела, кисти нейтрально.',
-          'Не пожимать плечами и не задерживать дыхание; корпус неподвижен.'
+          'Стопы устойчиво на полу, таз и верх спины на скамье.',
+          'Кисти над локтями; опускать до комфортной глубины, не сталкивать гантели.'
         ]
       }
     ]
@@ -325,14 +312,32 @@ export const WEIGHT_LABELS = {
   pullup: '+кг к весу тела'
 };
 
-export const LEGACY_CALF_RAISE = {
-  id: 'single-calf-raise',
-  name: 'Подъём на носок одной ноги с гантелью',
-  sets: 2,
-  target: '8–12 на каждую ногу',
-  kind: 'sides',
-  weight: 'dumbbell'
-};
+const LEGACY_EXERCISES = [
+  {
+    id: 'single-calf-raise',
+    name: 'Подъём на носок одной ноги с гантелью',
+    sets: 2,
+    target: '8–12 на каждую ногу',
+    kind: 'sides',
+    weight: 'dumbbell'
+  },
+  {
+    id: 'shrug',
+    name: 'Шраги с гантелями',
+    sets: 2,
+    target: '8–10 повторов',
+    kind: 'reps',
+    weight: 'dumbbell'
+  },
+  {
+    id: 'dumbbell-hold',
+    name: 'Удержание тяжёлых гантелей стоя',
+    sets: 2,
+    target: '20–30 секунд',
+    kind: 'seconds',
+    weight: 'dumbbell'
+  }
+];
 
 export const NECK_CIRCUIT_IDS = ['neck-front', 'neck-back', 'neck-left', 'neck-right'];
 
@@ -342,4 +347,9 @@ export function getRoutine(routineId) {
 
 export function getExercise(routineId, exerciseId) {
   return getRoutine(routineId).exercises.find((exercise) => exercise.id === exerciseId);
+}
+
+export function getWorkoutExercises(workout) {
+  return [...getRoutine(workout.routineId).exercises, ...LEGACY_EXERCISES]
+    .filter((exercise) => workout.sets[exercise.id]);
 }

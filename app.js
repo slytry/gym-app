@@ -1,4 +1,4 @@
-import { LEGACY_CALF_RAISE, NECK_CIRCUIT_IDS, PROGRAM, WEIGHT_LABELS, getRoutine } from './program.js?v=9';
+import { NECK_CIRCUIT_IDS, PROGRAM, WEIGHT_LABELS, getRoutine, getWorkoutExercises } from './program.js?v=15';
 import {
   countStatuses,
   createSetResult,
@@ -11,7 +11,7 @@ import {
   startNewDraft,
   transitionSetStatus,
   workoutHasProgress
-} from './state.js?v=14';
+} from './state.js?v=15';
 import {
   formatTimer,
   pauseTimer,
@@ -20,7 +20,7 @@ import {
   settleTimer,
   startTimer
 } from './timer.js?v=9';
-import { formatLocalDateTime, formatSetResult, workoutToMarkdown, workoutsToMarkdown } from './export.js?v=9';
+import { formatLocalDateTime, formatSetResult, workoutToMarkdown, workoutsToMarkdown } from './export.js?v=15';
 
 const elements = {
   storageWarning: document.querySelector('#storage-warning'),
@@ -457,9 +457,7 @@ function renderHistory() {
   elements.historyList.innerHTML = workouts.map((workout) => {
     const routine = getRoutine(workout.routineId);
     const statuses = countStatuses(workout);
-    const visibleExercises = routine.exercises.filter((exercise) => workout.sets[exercise.id]);
-    if (workout.sets[LEGACY_CALF_RAISE.id]) visibleExercises.push(LEGACY_CALF_RAISE);
-    const exercises = visibleExercises.map((exercise) => {
+    const exercises = getWorkoutExercises(workout).map((exercise) => {
       const sets = (workout.sets[exercise.id] || []).map((set, index) => (
         `<li>${index + 1}: ${escapeHtml(formatSetResult(set, exercise))}</li>`
       )).join('');

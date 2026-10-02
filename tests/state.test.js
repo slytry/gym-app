@@ -71,6 +71,58 @@ test('предыдущее значение берётся из последне
   assert.equal(findPreviousSet([skipped, older, pending], 'back-a', 'weighted-pullup', 0), null);
 });
 
+test('пятница создаёт семь подходов с новыми диапазонами и запускает отдых для тяги и жимов', () => {
+  const workout = createWorkout('back-b', 100, 'friday');
+  assert.deepEqual(Object.keys(workout.sets), ['chest-row-b', 'seated-press', 'dumbbell-bench']);
+  assert.equal(workout.sets['chest-row-b'].length, 3);
+  assert.equal(workout.sets['seated-press'].length, 2);
+  assert.equal(workout.sets['dumbbell-bench'].length, 2);
+  assert.equal(workout.sets['chest-row-b'][0].reps, '6');
+  assert.equal(workout.sets['seated-press'][0].reps, '6');
+  assert.equal(workout.sets['dumbbell-bench'][0].reps, '8');
+  assert.equal(countStatuses(workout).total, 7);
+
+  for (const [exerciseId, durationMs] of [['chest-row-b', 180_000], ['seated-press', 120_000], ['dumbbell-bench', 120_000]]) {
+    const timer = transitionSetStatus(workout, createTimerState(), exerciseId, 0, 'done', 1_000);
+    assert.equal(timer.durationMs, durationMs);
+    assert.equal(timer.deadline, 1_000 + durationMs);
+  }
+});
+
+test('добавляет жим в существующий пятничный черновик, сохраняя ввод и не подставляя вторничный вес', () => {
+  const store = createInitialStore();
+  const tuesday = finishWorkout(createWorkout('back-a', 100, 'tuesday'), 200);
+  tuesday.sets['dumbbell-bench'][0] = { status: 'done', weight: '30', reps: '8' };
+  store.history.push(tuesday);
+  const draft = createWorkout('back-b', 300, 'friday');
+  delete draft.sets['dumbbell-bench'];
+  draft.sets['chest-row-b'][0] = { status: 'done', weight: '24', reps: '8' };
+  store.drafts['back-b'] = draft;
+
+  assert.strictEqual(ensureDraft(store, 'back-b', 400), draft);
+  assert.deepEqual(draft.sets['chest-row-b'][0], { status: 'done', weight: '24', reps: '8' });
+  assert.equal(draft.sets['dumbbell-bench'][0].weight, '');
+  assert.equal(draft.sets['dumbbell-bench'][0].reps, '8');
+  draft.sets['dumbbell-bench'][0].weight = '20';
+  assert.equal(ensureDraft(store, 'back-b', 500).sets['dumbbell-bench'][0].weight, '20');
+});
+
+test('считает архивные шраги и удержания только в завершённой пятничной тренировке', () => {
+  const workout = createWorkout('back-b', 100, 'old-friday');
+  delete workout.sets['dumbbell-bench'];
+  workout.sets['chest-row-b'][0].status = 'done';
+  workout.sets.shrug = [{ status: 'done', weight: '24', reps: '10' }, { status: 'skipped' }];
+  workout.sets['dumbbell-hold'] = [{ status: 'done', weight: '30', seconds: '25' }, { status: 'pending' }];
+
+  assert.equal(countStatuses(workout).total, 5);
+  assert.deepEqual(countStatuses(finishWorkout(workout, 200)), {
+    done: 3,
+    skipped: 1,
+    pending: 5,
+    total: 9
+  });
+});
+
 test('старый черновик сохраняет записи с гантелью, но новый подъём в Смите начинает отдельно', () => {
   const store = createInitialStore();
   const draft = createWorkout('legs-a', 100, 'old');
