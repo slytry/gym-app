@@ -15,6 +15,7 @@ import {
 import {
   addWorkoutExercise,
   addWorkoutSet,
+  STORAGE_KEY,
   countStatuses,
   ensureDraft,
   findPreviousSet,
@@ -25,7 +26,7 @@ import {
   startNewDraft,
   transitionSetStatus,
   workoutHasProgress
-} from './state.js?v=19';
+} from './state.js?v=20';
 import {
   addTimerSeconds,
   formatTimer,
@@ -35,7 +36,12 @@ import {
   settleTimer,
   startTimer
 } from './timer.js?v=10';
-import { formatLocalDateTime, formatSetResult, workoutToMarkdown, workoutsToMarkdown } from './export.js?v=19';
+import { formatLocalDateTime, formatSetResult, workoutToMarkdown, workoutsToMarkdown } from './export.js?v=20';
+import { BACKUP_MAX_BYTES, createBackup, parseBackup, restoreBackup } from './backup.js?v=20';
+import { deleteWorkout } from './history.js?v=20';
+import { bindHistoryEditor, renderExerciseHistory } from './history-view.js?v=20';
+import { progressionHint } from './progression.js?v=20';
+import { escapeHtml } from './html.js?v=20';
 
 const elements = {
   storageWarning: document.querySelector('#storage-warning'),
@@ -67,6 +73,10 @@ const elements = {
   historyEmpty: document.querySelector('#history-empty'),
   historyList: document.querySelector('#history-list'),
   exportAll: document.querySelector('#export-all'),
+  exportBackup: document.querySelector('#export-backup'),
+  restoreBackup: document.querySelector('#restore-backup'),
+  backupFile: document.querySelector('#backup-file'),
+  workoutNote: document.querySelector('#workout-note'),
   programIntro: document.querySelector('#program-intro'),
   programList: document.querySelector('#program-list')
 };
@@ -77,6 +87,8 @@ let store = loaded.store;
 let installPrompt = null;
 let toastTimer = null;
 let activeNeckRound = 0;
+let storageReadError = loaded.error;
+const historyEditor = bindHistoryEditor(document.querySelector('#history-editor'), () => store, commitStore, renderSetRow);
 
 if (loaded.error) showStorageError(loaded.error);
 
@@ -163,12 +175,20 @@ function bindEvents() {
   elements.exerciseList.addEventListener('input', (event) => {
     const input = event.target.closest('[data-exercise-id][data-set-index][data-field]');
     if (!input) return;
+    if (!input.checkValidity()) { showToast('Проверь значение: отрицательные результаты и RIR вне 0–10 недопустимы'); return; }
 
     const draft = ensureDraft(store, store.selectedRoutineId);
     const result = draft.sets[input.dataset.exerciseId][Number(input.dataset.setIndex)];
     result[input.dataset.field] = input.value;
     result.prefilled = false;
     result.edited = true;
+    draft.updatedAt = Date.now();
+    persist();
+  });
+
+  elements.workoutNote.addEventListener('input', () => {
+    const draft = ensureDraft(store, store.selectedRoutineId);
+    draft.note = elements.workoutNote.value;
     draft.updatedAt = Date.now();
     persist();
   });
@@ -262,8 +282,15 @@ function bindEvents() {
   });
 
   elements.historyList.addEventListener('click', (event) => {
-    const button = event.target.closest('[data-export-id]');
+    const button = event.target.closest('[data-export-id], [data-edit-id], [data-delete-id]');
     if (!button) return;
+    if (button.dataset.editId) { historyEditor.open(button.dataset.editId); return; }
+    if (button.dataset.deleteId) {
+      if (window.confirm('Удалить тренировку? Будущее предзаполнение будет учитывать оставшуюся историю. Текущие черновики не изменятся.')) {
+        if (commitStore(deleteWorkout(store, button.dataset.deleteId))) showToast('Тренировка удалена');
+      }
+      return;
+    }
     const workout = store.history.find((item) => item.id === button.dataset.exportId);
     if (workout) downloadMarkdown(workoutToMarkdown(workout), `${workout.date}-${workout.routineId}.md`);
   });
@@ -271,6 +298,44 @@ function bindEvents() {
   elements.exportAll.addEventListener('click', () => {
     if (!store.history.length) return;
     downloadMarkdown(workoutsToMarkdown(store.history), `gym-history-${todayKey()}.md`);
+  });
+
+  elements.exportBackup.addEventListener('click', () => {
+    setAreaMenuOpen(false);
+    try {
+      if (storageReadError) throw new Error('Исходные данные не прочитаны. Не заменяй их бэкапом пустого журнала.');
+      downloadFile(createBackup(store), `gym-backup-${todayKey()}.json`, 'application/json');
+    } catch (error) { showStorageError(`Не удалось создать бэкап: ${error.message}`); }
+  });
+  elements.restoreBackup.addEventListener('click', () => {
+    setAreaMenuOpen(false);
+    elements.backupFile.click();
+  });
+  elements.backupFile.addEventListener('change', async () => {
+    const file = elements.backupFile.files[0];
+    elements.backupFile.value = '';
+    if (!file) return;
+    try {
+      if (file.size > BACKUP_MAX_BYTES) throw new Error('Бэкап больше 10 МБ');
+      const raw = await file.text();
+      const restored = parseBackup(raw);
+      const message = `Заменить все данные бэкапом? Тренировок: ${restored.history.length}, черновиков: ${Object.keys(restored.drafts).length}, специализированных занятий: ${restored.specialHistory.length}. Перед заменой текущая копия будет скачана отдельно.`;
+      if (!window.confirm(message)) return;
+      const current = storageReadError ? storage.getItem(STORAGE_KEY) : createBackup(store);
+      downloadFile(current || '', `gym-before-restore-${todayKey()}.json`, 'application/json');
+      const result = restoreBackup(storage, raw);
+      if (!result.ok) throw new Error(result.error);
+      store = result.store;
+      storageReadError = null;
+      elements.storageWarning.hidden = true;
+      activeNeckRound = 0;
+      renderWorkout();
+      renderHistory();
+      renderSpecialHistory('hands');
+      renderSpecialHistory('foot-ankle');
+      syncTimer(false);
+      showToast('Бэкап восстановлен');
+    } catch (error) { showStorageError(error.message); }
   });
 
   window.addEventListener('online', updateNetworkStatus);
@@ -329,6 +394,7 @@ function renderWorkout() {
   elements.workoutHeading.textContent = routine.name;
   elements.workoutDate.textContent = `Черновик от ${formatDate(draft.startedAt)}`;
   elements.workoutProgress.textContent = `${statuses.done}/${statuses.total} готово`;
+  elements.workoutNote.value = draft.note || '';
   elements.exerciseList.innerHTML = getActiveWorkoutExercises(draft).map((exercise) => {
     if (exercise.id === circuitIds[0]) return renderNeckCircuit(draft);
     if (circuitIds.includes(exercise.id)) return '';
@@ -362,6 +428,7 @@ function renderExercise(exercise, draft) {
     const previous = findPreviousSet(store.history, draft.routineId, exercise.id, index);
     return renderSetRow(exercise, result, previous, index);
   }).join('');
+  const hint = progressionHint(store.history, draft, exercise);
 
   return `
     <article class="exercise-card">
@@ -376,6 +443,8 @@ function renderExercise(exercise, draft) {
         ${setRows}
         <button class="button button-add-set button-icon" type="button" data-add-set="${exercise.id}" aria-label="${escapeHtml(`Добавить подход: ${exercise.name}`)}"><span class="add-icon" aria-hidden="true">+</span> Добавить подход</button>
       </div>
+      ${hint ? `<p class="progression-hint">${escapeHtml(hint)}</p>` : ''}
+      ${renderExerciseHistory(store.history, draft.routineId, exercise)}
       ${renderTechnique(exercise)}
     </article>
   `;
@@ -417,6 +486,7 @@ function renderNeckCircuit(draft) {
       <div class="sets">
         <button class="button button-add-set button-icon" type="button" data-add-set="${circuit.exerciseIds[0]}"><span class="add-icon" aria-hidden="true">+</span> Добавить круг</button>
       </div>
+      ${directions.map((direction) => renderExerciseHistory(store.history, draft.routineId, direction)).join('')}
       <details class="technique">
         <summary>Техника</summary>
         <div class="technique-body">
@@ -439,12 +509,13 @@ function selectNeckRound(index) {
   });
 }
 
-function renderSetRow(exercise, result, previous, index, inCircuit = false, circuitIds = []) {
+function renderSetRow(exercise, result, previous, index, inCircuit = false, circuitIds = [], editing = false) {
+  const prefix = `${editing ? 'edit-' : ''}${exercise.id}-${index}`;
   const inputs = inputDefinitions(exercise).map((input) => `
     <div class="input-wrap">
-      <label for="${exercise.id}-${index}-${input.field}">${input.label}</label>
+      <label for="${prefix}-${input.field}">${input.label}</label>
       <input
-        id="${exercise.id}-${index}-${input.field}"
+        id="${prefix}-${input.field}"
         type="number"
         inputmode="${input.step === '1' ? 'numeric' : 'decimal'}"
         min="0"
@@ -473,7 +544,18 @@ function renderSetRow(exercise, result, previous, index, inCircuit = false, circ
           <button class="status-button" type="button" data-status="skipped" data-exercise-id="${exercise.id}" data-set-index="${index}" aria-pressed="${result.status === 'skipped'}">Пропуск</button>
         </div>
         ${optional && !inCircuit ? '<p class="previous-hint">По самочувствию.</p>' : ''}
-        ${hint}
+        ${editing ? '' : hint}
+        <details class="set-effort" ${result.rir !== undefined && result.rir !== '' || result.note ? 'open' : ''}>
+          <summary>${exercise.kind === 'seconds' ? 'Заметка' : 'RIR и заметка'}</summary>
+          ${exercise.kind === 'seconds' ? '' : `
+            <div class="input-wrap">
+              <label for="${prefix}-rir">RIR: запас повторов, 0–10</label>
+              <input id="${prefix}-rir" type="number" min="0" max="10" step="1" inputmode="numeric" value="${escapeHtml(result.rir ?? '')}" data-exercise-id="${exercise.id}" data-set-index="${index}" data-field="rir" aria-label="${escapeHtml(`${exercise.name}, подход ${index + 1}, запас повторов`)}">
+            </div>
+            <p class="fine-print">0 — больше повторов не осталось; 2 — мог бы сделать ещё два. Поле необязательное и не копируется из прошлого занятия.</p>
+          `}
+          <label class="note-field" for="${prefix}-note">Заметка к подходу<textarea id="${prefix}-note" rows="2" maxlength="2000" data-exercise-id="${exercise.id}" data-set-index="${index}" data-field="note">${escapeHtml(result.note || '')}</textarea></label>
+        </details>
       </div>
     </div>
   `;
@@ -581,8 +663,13 @@ function renderHistory() {
           <span>${statuses.done}/${statuses.total}</span>
         </summary>
         <div class="history-body">
+          ${workout.note ? `<p class="entry-note">${escapeHtml(workout.note)}</p>` : ''}
           ${exercises}
-          <button class="button button-quiet" type="button" data-export-id="${escapeHtml(workout.id)}">Скачать Markdown</button>
+          <div class="history-actions">
+            <button class="button button-quiet" type="button" data-edit-id="${escapeHtml(workout.id)}">Редактировать</button>
+            <button class="button button-danger" type="button" data-delete-id="${escapeHtml(workout.id)}">Удалить</button>
+            <button class="button button-quiet" type="button" data-export-id="${escapeHtml(workout.id)}">Скачать Markdown</button>
+          </div>
         </div>
       </details>
     `;
@@ -680,10 +767,22 @@ function renderTimer() {
 }
 
 function persist() {
+  if (storageReadError) { showStorageError(`${storageReadError}. Исходные данные не перезаписаны. Восстановите JSON-бэкап через меню.`); return false; }
   const result = saveStore(storage, store);
   if (result.ok) elements.storageWarning.hidden = true;
   else showStorageError(result.error);
   return result.ok;
+}
+
+function commitStore(next) {
+  if (storageReadError) { showStorageError(storageReadError); return false; }
+  const result = saveStore(storage, next);
+  if (!result.ok) { showStorageError(result.error); return false; }
+  store = next;
+  elements.storageWarning.hidden = true;
+  renderHistory();
+  renderWorkout();
+  return true;
 }
 
 function showStorageError(message) {
@@ -711,7 +810,11 @@ function bindOptionalImageErrors(container) {
 }
 
 function downloadMarkdown(content, filename) {
-  const blob = new Blob([content], { type: 'text/markdown;charset=utf-8' });
+  downloadFile(content, filename, 'text/markdown;charset=utf-8');
+}
+
+function downloadFile(content, filename, type) {
+  const blob = new Blob([content], { type });
   const url = URL.createObjectURL(blob);
   const anchor = document.createElement('a');
   anchor.href = url;
@@ -745,15 +848,6 @@ function formatDate(timestamp) {
 function todayKey() {
   const date = new Date();
   return [date.getFullYear(), String(date.getMonth() + 1).padStart(2, '0'), String(date.getDate()).padStart(2, '0')].join('-');
-}
-
-function escapeHtml(value) {
-  return String(value)
-    .replaceAll('&', '&amp;')
-    .replaceAll('<', '&lt;')
-    .replaceAll('>', '&gt;')
-    .replaceAll('"', '&quot;')
-    .replaceAll("'", '&#039;');
 }
 
 function trimFinalPeriod(value) {

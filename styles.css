@@ -37,7 +37,8 @@ body {
 }
 
 button,
-input {
+input,
+textarea {
   font: inherit;
 }
 
@@ -47,6 +48,7 @@ button {
 
 button:focus-visible,
 input:focus-visible,
+textarea:focus-visible,
 summary:focus-visible,
 a:focus-visible {
   outline: 3px solid rgba(199, 243, 107, 0.65);
@@ -745,6 +747,116 @@ h3 {
 .history-body .button {
   width: 100%;
   margin-top: 8px;
+}
+
+.workout-note,
+.exercise-history {
+  border: 1px solid var(--line);
+  background: var(--surface);
+}
+
+.workout-note {
+  margin-bottom: 12px;
+  border-radius: 13px;
+}
+
+.workout-note summary,
+.exercise-history summary,
+.set-effort summary {
+  min-height: 44px;
+  padding: 12px;
+  color: var(--muted);
+  font-size: 0.82rem;
+  cursor: pointer;
+}
+
+.set-effort {
+  margin-top: 8px;
+  border-top: 1px solid var(--line);
+}
+
+.set-effort summary {
+  padding-inline: 2px;
+}
+
+.note-field {
+  display: block;
+  padding: 12px;
+  color: var(--muted);
+  font-size: 0.8rem;
+}
+
+.set-effort .note-field {
+  padding-inline: 0;
+}
+
+.note-field textarea {
+  display: block;
+  width: 100%;
+  margin-top: 8px;
+  padding: 10px;
+  border: 1px solid #34413e;
+  border-radius: 10px;
+  color: var(--text);
+  background: #0d1211;
+  resize: vertical;
+}
+
+.entry-note {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  margin-top: 10px;
+}
+
+.progression-hint {
+  padding: 12px 14px;
+  margin: 0;
+  color: var(--lime);
+  font-size: 0.8rem;
+  line-height: 1.5;
+}
+
+.history-actions,
+.editor-actions,
+.edit-dates {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.history-actions button:last-child {
+  grid-column: 1 / -1;
+}
+
+.history-editor {
+  width: min(720px, calc(100% - 24px));
+  max-height: calc(100dvh - 24px);
+  padding: 16px;
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  color: var(--text);
+  background: var(--surface);
+  overscroll-behavior: contain;
+}
+
+.history-editor::backdrop {
+  background: rgba(0, 0, 0, 0.75);
+}
+
+.edit-dates {
+  margin-top: 16px;
+}
+
+.edit-dates input {
+  min-width: 0;
+  font-size: 0.82rem;
+}
+
+.editor-actions {
+  position: sticky;
+  bottom: -16px;
+  padding-block: 12px;
+  background: var(--surface);
 }
 
 .program-intro {

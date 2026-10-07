@@ -8,7 +8,7 @@
   <link rel="manifest" href="./manifest.webmanifest">
   <link rel="icon" href="./icons/icon-192.png" sizes="192x192">
   <link rel="apple-touch-icon" href="./icons/icon-192.png">
-  <link rel="stylesheet" href="./styles.css?v=16">
+  <link rel="stylesheet" href="./styles.css?v=17">
   <title>40 минут — дневник зала</title>
 </head>
 <body>
@@ -28,6 +28,9 @@
       <p class="area-menu-label">Восстановление</p>
       <button type="button" data-area="special" data-view="hands">Кисти и запястья</button>
       <button type="button" data-area="special" data-view="foot-ankle">Стопа и голеностоп</button>
+      <p class="area-menu-label">Данные</p>
+      <button id="export-backup" type="button">Скачать JSON-бэкап</button>
+      <button id="restore-backup" type="button">Восстановить JSON-бэкап</button>
       <button id="install-button" class="install-action" type="button" hidden>Установить приложение</button>
     </nav>
   </header>
@@ -35,6 +38,7 @@
   <div id="storage-warning" class="banner banner-error" role="alert" hidden></div>
   <div id="offline-banner" class="banner" role="status" hidden>Офлайн-режим: журнал работает, внешние иллюстрации могут быть недоступны.</div>
   <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
+  <input id="backup-file" type="file" accept=".json,application/json" hidden>
 
   <main>
     <section id="view-workout" class="view" aria-labelledby="workout-heading">
@@ -68,6 +72,11 @@
         </div>
         <div id="workout-progress" class="progress-pill"></div>
       </article>
+
+      <details class="workout-note">
+        <summary>Заметка к тренировке</summary>
+        <label class="note-field" for="workout-note">Самочувствие и особенности занятия<textarea id="workout-note" rows="3" maxlength="2000"></textarea></label>
+      </details>
 
       <div class="exercise-list">
         <div id="exercise-list" class="exercise-list"></div>
@@ -357,12 +366,25 @@
     </section>
   </main>
 
+  <dialog id="history-editor" class="history-editor" aria-labelledby="history-editor-heading">
+    <form>
+      <h2 id="history-editor-heading">Редактировать тренировку</h2>
+      <p class="fine-print">Правки сохраняются только после подтверждения. Таймеры не запускаются, текущие черновики не меняются.</p>
+      <p id="history-editor-error" class="banner banner-error" role="alert" hidden></p>
+      <div id="history-editor-content"></div>
+      <div class="editor-actions">
+        <button class="button button-primary" type="submit">Сохранить изменения</button>
+        <button class="button button-quiet" type="button" data-cancel-edit>Отмена</button>
+      </div>
+    </form>
+  </dialog>
+
   <nav class="bottom-nav" aria-label="Основная навигация">
     <button type="button" data-view="workout" aria-current="page">Тренировка</button>
     <button type="button" data-view="history">История</button>
     <button type="button" data-view="program">Программа</button>
   </nav>
 
-  <script type="module" src="./bootstrap.js?v=19"></script>
+  <script type="module" src="./bootstrap.js?v=20"></script>
 </body>
 </html>

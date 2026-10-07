@@ -10,6 +10,7 @@ export function workoutToMarkdown(workout) {
     '- Единицы: для гантелей вес указан на одну гантель; для подтягиваний — только дополнительный вес.',
     ''
   ];
+  if (workout.note?.trim()) lines.push('Заметка к тренировке:', ...workout.note.split('\n').map((line) => `> ${line}`), '');
 
   for (const exercise of getWorkoutExercises(workout)) {
     lines.push(`## ${exercise.name}`);
@@ -34,8 +35,13 @@ export function workoutsToMarkdown(workouts) {
 }
 
 export function formatSetResult(set, exercise) {
-  if (!set || set.status === 'pending') return 'не завершён';
-  if (set.status === 'skipped') return 'пропущен';
+  if (!set) return 'не завершён';
+  const details = [
+    ...(set.status === 'done' && set.rir !== undefined && set.rir !== '' ? [`RIR ${set.rir}`] : []),
+    ...(set.note?.trim() ? [`заметка: ${set.note}`] : [])
+  ];
+  if (set.status === 'pending') return ['не завершён', ...details].join(' · ');
+  if (set.status === 'skipped') return ['пропущен', ...details].join(' · ');
 
   const values = [];
   if (exercise.weight && set.weight !== '') values.push(`${set.weight} ${WEIGHT_LABELS[exercise.weight]}`);
@@ -46,7 +52,7 @@ export function formatSetResult(set, exercise) {
   }
   if (exercise.kind === 'seconds' && set.seconds !== '') values.push(`${set.seconds} с`);
 
-  return values.length ? values.join(' × ') : 'выполнен, результат не записан';
+  return [values.length ? values.join(' × ') : 'выполнен, результат не записан', ...details].join(' · ');
 }
 
 export function formatLocalDateTime(timestamp) {

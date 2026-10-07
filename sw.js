@@ -1,16 +1,21 @@
 const CACHE_PREFIX = 'gym-log-pwa-';
-const CACHE_NAME = `${CACHE_PREFIX}v19`;
+const CACHE_NAME = `${CACHE_PREFIX}v20`;
 const APP_SHELL = [
   './',
   './index.html',
-  './styles.css?v=16',
-  './bootstrap.js?v=19',
-  './app.js?v=19',
+  './styles.css?v=17',
+  './bootstrap.js?v=20',
+  './app.js?v=20',
   './program.js?v=19',
   './program.json',
-  './state.js?v=19',
+  './state.js?v=20',
   './timer.js?v=10',
-  './export.js?v=19',
+  './export.js?v=20',
+  './backup.js?v=20',
+  './history.js?v=20',
+  './history-view.js?v=20',
+  './progression.js?v=20',
+  './html.js?v=20',
   './manifest.webmanifest',
   './icons/icon-192.png',
   './icons/icon-512.png',

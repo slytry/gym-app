@@ -67,3 +67,16 @@ test('экспорт старого подъёма с гантелью не см
   assert.match(markdown, /Подъём на носок одной ноги с гантелью/);
   assert.match(markdown, /12 кг на одну гантель × левая 10 повт\. × правая 9 повт\./);
 });
+
+test('Markdown сохраняет RIR 0, заметку к тренировке и заметки незавершённых и пропущенных подходов', () => {
+  const workout = createWorkout('legs-a', 100, 'notes');
+  workout.note = 'Утром\nСпокойный темп';
+  Object.assign(workout.sets.squat[0], { status: 'done', weight: '80', reps: '5', rir: '0', note: 'Последний повтор тяжёлый' });
+  Object.assign(workout.sets.squat[1], { status: 'skipped', note: 'Нет времени' });
+  workout.sets.squat[2].note = 'Не начинал';
+  const markdown = workoutToMarkdown(workout);
+  assert.match(markdown, /> Утром\n> Спокойный темп/);
+  assert.match(markdown, /RIR 0 · заметка: Последний повтор тяжёлый/);
+  assert.match(markdown, /пропущен · заметка: Нет времени/);
+  assert.match(markdown, /не завершён · заметка: Не начинал/);
+});

@@ -135,7 +135,7 @@ export function addWorkoutSet(store, routineId, exerciseId, timestamp = Date.now
 
 export function workoutHasProgress(workout) {
   const routine = getWorkoutRoutine(workout);
-  return getActiveWorkoutExercises(workout).some((exercise) => (
+  return !!workout.note?.trim() || getActiveWorkoutExercises(workout).some((exercise) => (
     !routine.exercises.some((item) => item.id === exercise.id) || workout.sets[exercise.id].length > exercise.sets
   ))
     || Object.values(workout.sets).flat().some((set) => (
