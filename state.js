@@ -8,7 +8,7 @@ import {
   getRoutine,
   getWorkoutExercises
 } from './program.js?v=17';
-import { createTimerState, startTimer } from './timer.js?v=9';
+import { createTimerState, startTimer } from './timer.js?v=10';
 
 export const STORAGE_KEY = 'gym-log-pwa:v1';
 

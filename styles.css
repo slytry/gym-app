@@ -64,12 +64,12 @@ main,
 }
 
 .app-header {
+  position: relative;
   display: flex;
-  flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
-  min-height: 86px;
-  gap: 16px;
+  min-height: 72px;
+  gap: 12px;
   padding-block: 12px;
 }
 
@@ -81,10 +81,14 @@ main,
 }
 
 .area-menu {
+  position: absolute;
+  z-index: 20;
+  top: calc(100% - 4px);
+  right: 16px;
   display: grid;
-  gap: 8px;
-  margin: 0 16px 16px;
-  padding: 10px;
+  width: min(340px, calc(100% - 32px));
+  gap: 4px;
+  padding: 8px;
   border: 1px solid var(--line);
   border-radius: 16px;
   background: var(--surface-2);
@@ -92,31 +96,36 @@ main,
 }
 
 .area-menu button {
-  min-height: 64px;
-  padding: 10px 14px;
-  border: 1px solid var(--line);
-  border-radius: 12px;
+  min-height: 44px;
+  padding: 10px 12px;
+  border: 0;
+  border-radius: 10px;
   color: var(--text);
-  background: var(--surface);
+  background: transparent;
   text-align: left;
+  font-size: 0.9rem;
+  font-weight: 650;
 }
 
 .area-menu button[aria-current="page"] {
-  border-color: var(--lime);
-}
-
-.area-menu span {
-  display: block;
-  margin-top: 3px;
-  color: var(--muted);
-  font-size: 0.8rem;
+  color: var(--lime);
+  background: var(--lime-dark);
 }
 
 .area-menu-label {
-  margin: 8px 4px 0;
-  color: var(--lime);
-  font-size: 0.78rem;
-  font-weight: 800;
+  margin: 10px 12px 2px;
+  color: var(--muted);
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.area-menu .install-action {
+  border-top: 1px solid var(--line);
+  border-radius: 0;
+  margin-top: 4px;
+  color: var(--muted);
 }
 
 h1,
@@ -281,6 +290,56 @@ h3 {
 .program-list {
   display: grid;
   gap: 12px;
+}
+
+.exercise-picker {
+  padding: 14px;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  background: var(--surface);
+}
+
+.exercise-picker > .muted {
+  margin-bottom: 12px;
+  line-height: 1.45;
+}
+
+.exercise-choices {
+  display: grid;
+}
+
+.exercise-choice {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  min-height: 64px;
+  padding: 12px 4px;
+  border: 0;
+  border-bottom: 1px solid var(--line);
+  color: var(--text);
+  background: transparent;
+  text-align: left;
+}
+
+.exercise-choice:last-child {
+  border-bottom: 0;
+}
+
+.exercise-choice strong {
+  font-size: 0.9rem;
+  font-weight: 650;
+}
+
+.exercise-choice small {
+  display: block;
+  margin-top: 4px;
+  color: var(--muted);
+  font-size: 0.78rem;
+}
+
+.exercise-choice > .add-icon {
+  color: var(--lime);
 }
 
 .exercise-card {
@@ -526,6 +585,34 @@ h3 {
   background: var(--surface-2);
 }
 
+.button-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.add-icon {
+  flex: 0 0 auto;
+  font-size: 1.4rem;
+  font-weight: 500;
+  line-height: 1;
+}
+
+.button-add {
+  border: 1px dashed #617a3e;
+  color: var(--lime);
+  background: transparent;
+}
+
+.button-add-set {
+  border-radius: 0;
+  color: var(--lime);
+  background: #141a19;
+  font-size: 0.82rem;
+  font-weight: 700;
+}
+
 .button-danger {
   border-color: #59302c;
   color: #ffc6c1;
@@ -569,12 +656,17 @@ h3 {
 
 .timer-actions {
   grid-column: 1 / -1;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   margin-top: 0;
 }
 
 .timer-actions .button {
-  min-height: 36px;
-  padding-block: 5px;
+  min-height: 44px;
+  padding: 8px;
+}
+
+.timer-actions #timer-extend {
+  color: var(--lime);
 }
 
 .timer-presets {
@@ -585,7 +677,7 @@ h3 {
 }
 
 .timer-presets button {
-  min-height: 36px;
+  min-height: 44px;
 }
 
 .section-heading {
@@ -802,6 +894,10 @@ h3 {
   .app-header,
   main {
     padding-inline: 24px;
+  }
+
+  .area-menu {
+    right: 24px;
   }
 
   .set-row {

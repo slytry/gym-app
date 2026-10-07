@@ -17,6 +17,19 @@ export function startTimer(timer, seconds, now = Date.now()) {
   };
 }
 
+export function addTimerSeconds(timer, seconds, now = Date.now()) {
+  const current = settleTimer(timer, now).timer;
+  if (current.mode === 'finished') return startTimer(current, seconds, now);
+
+  const addedMs = Math.max(0, Number(seconds) * 1000);
+  return {
+    ...current,
+    durationMs: current.durationMs + addedMs,
+    remainingMs: current.remainingMs + addedMs,
+    deadline: current.mode === 'running' ? current.deadline + addedMs : null
+  };
+}
+
 export function pauseTimer(timer, now = Date.now()) {
   if (timer.mode !== 'running') return { ...timer };
 

@@ -22,15 +22,16 @@ import {
   startNewDraft,
   transitionSetStatus,
   workoutHasProgress
-} from './state.js?v=17';
+} from './state.js?v=18';
 import {
+  addTimerSeconds,
   formatTimer,
   pauseTimer,
   resetTimer,
   resumeTimer,
   settleTimer,
   startTimer
-} from './timer.js?v=9';
+} from './timer.js?v=10';
 import { formatLocalDateTime, formatSetResult, workoutToMarkdown, workoutsToMarkdown } from './export.js?v=17';
 
 const elements = {
@@ -48,6 +49,7 @@ const elements = {
   workoutDate: document.querySelector('#workout-date'),
   workoutProgress: document.querySelector('#workout-progress'),
   exerciseList: document.querySelector('#exercise-list'),
+  exerciseBankToggle: document.querySelector('#exercise-bank-toggle'),
   exerciseBank: document.querySelector('#exercise-bank'),
   exerciseBankList: document.querySelector('#exercise-bank-list'),
   exerciseBankEmpty: document.querySelector('#exercise-bank-empty'),
@@ -57,6 +59,7 @@ const elements = {
   timerStatus: document.querySelector('#timer-status'),
   timerPresets: document.querySelector('#timer-presets'),
   timerToggle: document.querySelector('#timer-toggle'),
+  timerExtend: document.querySelector('#timer-extend'),
   timerReset: document.querySelector('#timer-reset'),
   historyEmpty: document.querySelector('#history-empty'),
   historyList: document.querySelector('#history-list'),
@@ -87,15 +90,33 @@ setInterval(() => syncTimer(document.visibilityState === 'visible'), 250);
 
 function bindEvents() {
   elements.menuToggle.addEventListener('click', () => {
-    const isOpen = !elements.areaMenu.hidden;
-    elements.areaMenu.hidden = isOpen;
-    elements.menuToggle.setAttribute('aria-expanded', String(!isOpen));
+    setAreaMenuOpen(elements.areaMenu.hidden);
   });
 
   elements.areaMenu.addEventListener('click', (event) => {
     const button = event.target.closest('[data-area]');
     if (!button) return;
     showView(button.dataset.view || 'workout');
+    elements.menuToggle.focus();
+  });
+
+  document.addEventListener('click', (event) => {
+    if (!event.target.closest('#area-menu, #menu-toggle')) setAreaMenuOpen(false);
+  });
+
+  document.addEventListener('focusin', (event) => {
+    if (!event.target.closest('#area-menu, #menu-toggle')) setAreaMenuOpen(false);
+  });
+
+  document.addEventListener('keydown', (event) => {
+    if (event.key !== 'Escape') return;
+    if (!elements.areaMenu.hidden) {
+      setAreaMenuOpen(false);
+      elements.menuToggle.focus();
+    } else if (!elements.exerciseBank.hidden) {
+      setExerciseBankOpen(false);
+      elements.exerciseBankToggle.focus();
+    }
   });
 
   document.querySelectorAll('[data-record-special]').forEach((button) => button.addEventListener('click', () => {
@@ -111,9 +132,14 @@ function bindEvents() {
     if (!button) return;
     store.selectedRoutineId = button.dataset.routineId;
     activeNeckRound = 0;
+    setExerciseBankOpen(false);
     ensureDraft(store, store.selectedRoutineId);
     persist();
     renderWorkout();
+  });
+
+  elements.exerciseBankToggle.addEventListener('click', () => {
+    setExerciseBankOpen(elements.exerciseBank.hidden);
   });
 
   elements.exerciseBankList.addEventListener('click', (event) => {
@@ -124,7 +150,7 @@ function bindEvents() {
     if (NECK_CIRCUIT_IDS.includes(exerciseId)) activeNeckRound = 0;
     const saved = persist();
     renderWorkout();
-    elements.exerciseBank.open = false;
+    setExerciseBankOpen(false);
     elements.exerciseList.querySelector(`[data-add-set="${exerciseId}"]`).focus();
     showToast(saved ? 'Упражнение добавлено' : 'Упражнение добавлено только в памяти: данные не сохранены');
   });
@@ -218,6 +244,12 @@ function bindEvents() {
     renderTimer();
   });
 
+  elements.timerExtend.addEventListener('click', () => {
+    store.timer = addTimerSeconds(store.timer, 30);
+    persist();
+    renderTimer();
+  });
+
   document.querySelector('.bottom-nav').addEventListener('click', (event) => {
     const button = event.target.closest('[data-view]');
     if (!button) return;
@@ -261,6 +293,21 @@ function bindEvents() {
   });
 }
 
+function setAreaMenuOpen(open) {
+  elements.areaMenu.hidden = !open;
+  elements.menuToggle.setAttribute('aria-expanded', String(open));
+}
+
+function setExerciseBankOpen(open) {
+  elements.exerciseBank.hidden = !open;
+  elements.exerciseBankToggle.setAttribute('aria-expanded', String(open));
+  if (open) {
+    const timerHeight = elements.timerDisplay.closest('.timer-card').getBoundingClientRect().height;
+    const top = window.scrollY + elements.exerciseBankToggle.getBoundingClientRect().top;
+    window.scrollTo({ top: top - timerHeight - 12, behavior: 'instant' });
+  }
+}
+
 function renderWorkout() {
   const routine = getRoutine(store.selectedRoutineId);
   const draft = ensureDraft(store, routine.id);
@@ -302,9 +349,12 @@ function renderExerciseBank(draft) {
     const neck = exercise.id === NECK_CIRCUIT_IDS[0];
     const name = neck ? 'Шея — круг из 4 направлений' : exercise.name;
     return `
-      <button class="button button-quiet" type="button" data-add-exercise="${exercise.id}">
-        ${escapeHtml(name)}<br>
-        <span class="muted">${exercise.sets} ${neck ? 'круга по' : '×'} ${escapeHtml(exercise.target)}</span>
+      <button class="exercise-choice" type="button" data-add-exercise="${exercise.id}" aria-label="${escapeHtml(`Добавить: ${name}`)}">
+        <span>
+          <strong>${escapeHtml(name)}</strong>
+          <small>${exercise.sets} ${neck ? 'круга по' : '×'} ${escapeHtml(exercise.target)}</small>
+        </span>
+        <span class="add-icon" aria-hidden="true">+</span>
       </button>
     `;
   }).join('');
@@ -328,7 +378,7 @@ function renderExercise(exercise, draft) {
       </header>
       <div class="sets">
         ${setRows}
-        <button class="button button-quiet" type="button" data-add-set="${exercise.id}" aria-label="${escapeHtml(`Добавить подход: ${exercise.name}`)}">Добавить подход</button>
+        <button class="button button-add-set button-icon" type="button" data-add-set="${exercise.id}" aria-label="${escapeHtml(`Добавить подход: ${exercise.name}`)}"><span class="add-icon" aria-hidden="true">+</span> Добавить подход</button>
       </div>
       ${renderTechnique(exercise)}
     </article>
@@ -367,7 +417,7 @@ function renderNeckCircuit(draft) {
         </div>
       `).join('')}
       <div class="sets">
-        <button class="button button-quiet" type="button" data-add-set="${NECK_CIRCUIT_IDS[0]}">Добавить круг</button>
+        <button class="button button-add-set button-icon" type="button" data-add-set="${NECK_CIRCUIT_IDS[0]}"><span class="add-icon" aria-hidden="true">+</span> Добавить круг</button>
       </div>
       <details class="technique">
         <summary>Техника</summary>
@@ -580,13 +630,12 @@ function showView(viewName) {
     view.hidden = view.id !== `view-${viewName}`;
   });
   elements.bottomNav.hidden = special;
-  elements.areaLabel.textContent = special ? 'Специализированные тренировки' : 'Регулярные тренировки';
+  elements.areaLabel.textContent = special ? 'Восстановление' : 'Силовые тренировки';
   elements.areaMenu.querySelectorAll('[data-area]').forEach((button) => {
     if (button.dataset.view === (special ? viewName : 'workout')) button.setAttribute('aria-current', 'page');
     else button.removeAttribute('aria-current');
   });
-  elements.areaMenu.hidden = true;
-  elements.menuToggle.setAttribute('aria-expanded', 'false');
+  setAreaMenuOpen(false);
   document.querySelectorAll('.bottom-nav [data-view]').forEach((button) => {
     if (button.dataset.view === viewName) button.setAttribute('aria-current', 'page');
     else button.removeAttribute('aria-current');
