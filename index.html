@@ -8,7 +8,7 @@
   <link rel="manifest" href="./manifest.webmanifest">
   <link rel="icon" href="./icons/icon-192.png" sizes="192x192">
   <link rel="apple-touch-icon" href="./icons/icon-192.png">
-  <link rel="stylesheet" href="./styles.css?v=17">
+  <link rel="stylesheet" href="./styles.css?v=18">
   <title>40 минут — дневник зала</title>
 </head>
 <body>
@@ -366,6 +366,17 @@
     </section>
   </main>
 
+  <dialog id="exercise-replacement" class="exercise-replacement" aria-labelledby="exercise-replacement-heading" aria-describedby="exercise-replacement-help">
+    <h2 id="exercise-replacement-heading">Заменить упражнение</h2>
+    <p id="exercise-replacement-help" class="muted">Выберите упражнение на это занятие. Подходы и отдых будут взяты из его плана. Основная программа не изменится.</p>
+    <p id="exercise-replacement-error" class="banner banner-error" role="alert" hidden></p>
+    <div id="exercise-replacement-choices" class="exercise-choices"></div>
+    <p id="exercise-replacement-empty" class="muted" hidden>Других упражнений в банке нет. Можно отменить замену и продолжить тренировку.</p>
+    <div class="editor-actions replacement-actions">
+      <button class="button button-quiet" type="button" data-cancel-replacement>Отмена</button>
+    </div>
+  </dialog>
+
   <dialog id="history-editor" class="history-editor" aria-labelledby="history-editor-heading">
     <form>
       <h2 id="history-editor-heading">Редактировать тренировку</h2>
@@ -385,6 +396,6 @@
     <button type="button" data-view="program">Программа</button>
   </nav>
 
-  <script type="module" src="./bootstrap.js?v=20"></script>
+  <script type="module" src="./bootstrap.js?v=21"></script>
 </body>
 </html>

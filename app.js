@@ -26,7 +26,7 @@ import {
   startNewDraft,
   transitionSetStatus,
   workoutHasProgress
-} from './state.js?v=20';
+} from './state.js?v=21';
 import {
   addTimerSeconds,
   formatTimer,
@@ -37,9 +37,10 @@ import {
   startTimer
 } from './timer.js?v=10';
 import { formatLocalDateTime, formatSetResult, workoutToMarkdown, workoutsToMarkdown } from './export.js?v=20';
-import { BACKUP_MAX_BYTES, createBackup, parseBackup, restoreBackup } from './backup.js?v=20';
-import { deleteWorkout } from './history.js?v=20';
-import { bindHistoryEditor, renderExerciseHistory } from './history-view.js?v=20';
+import { BACKUP_MAX_BYTES, createBackup, parseBackup, restoreBackup } from './backup.js?v=21';
+import { deleteWorkout } from './history.js?v=21';
+import { bindHistoryEditor, renderExerciseHistory } from './history-view.js?v=21';
+import { bindExerciseReplacement } from './exercise-replacement.js?v=21';
 import { progressionHint } from './progression.js?v=20';
 import { escapeHtml } from './html.js?v=20';
 
@@ -89,6 +90,8 @@ let toastTimer = null;
 let activeNeckRound = 0;
 let storageReadError = loaded.error;
 const historyEditor = bindHistoryEditor(document.querySelector('#history-editor'), () => store, commitStore, renderSetRow);
+const exerciseReplacement = bindExerciseReplacement(document.querySelector('#exercise-replacement'), () => store, commitStore,
+  () => showToast('Упражнение заменено только на это занятие'));
 
 if (loaded.error) showStorageError(loaded.error);
 
@@ -194,6 +197,12 @@ function bindEvents() {
   });
 
   elements.exerciseList.addEventListener('click', (event) => {
+    const replaceButton = event.target.closest('[data-replace-exercise]');
+    if (replaceButton) {
+      setExerciseBankOpen(false);
+      exerciseReplacement.open(replaceButton.dataset.replaceExercise);
+      return;
+    }
     const tab = event.target.closest('[data-neck-round]');
     if (tab) {
       selectNeckRound(Number(tab.dataset.neckRound));
@@ -436,6 +445,8 @@ function renderExercise(exercise, draft) {
         <div>
           <h3>${escapeHtml(exercise.name)}</h3>
           <p class="exercise-meta">${draft.sets[exercise.id].length} × ${escapeHtml(exercise.target)}${escapeHtml(weightText)}</p>
+          ${exercise.replaces ? '<p class="replacement-label">Замена на это занятие</p>' : ''}
+          <button class="button button-quiet button-replace" type="button" data-replace-exercise="${exercise.id}" aria-label="${escapeHtml(`Заменить: ${exercise.name}`)}">Заменить</button>
         </div>
         <span class="rest-badge">Отдых ${formatTimer(exercise.restSeconds * 1000)}</span>
       </header>

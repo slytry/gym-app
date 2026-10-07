@@ -1,6 +1,6 @@
 import { getWorkoutExercises, getWorkoutRoutine } from './program.js?v=19';
-import { beginWorkoutEdit, saveWorkoutEdit, getExerciseHistory } from './history.js?v=20';
-import { localDateKey } from './state.js?v=20';
+import { beginWorkoutEdit, saveWorkoutEdit, getExerciseHistory } from './history.js?v=21';
+import { localDateKey } from './state.js?v=21';
 import { formatLocalDateTime, formatSetResult } from './export.js?v=20';
 import { escapeHtml } from './html.js?v=20';
 

@@ -133,16 +133,50 @@ export function addWorkoutSet(store, routineId, exerciseId, timestamp = Date.now
   return draft;
 }
 
+export function getExerciseReplacementError(workout, exerciseId) {
+  if (!workout || workout.finishedAt || !getActiveWorkoutExercises(workout).some((item) => item.id === exerciseId)) {
+    return 'Упражнение не найдено в текущем черновике';
+  }
+  if (getWorkoutNeckCircuit(workout).exerciseIds.includes(exerciseId)) {
+    return 'Круг шеи нельзя заменять. Добавьте другое упражнение отдельно.';
+  }
+  if (workout.sets[exerciseId].some(setHasProgress)) {
+    return 'В упражнении уже есть записи. Добавьте другое упражнение отдельно, чтобы сохранить результаты.';
+  }
+  return null;
+}
+
+export function replaceWorkoutExercise(store, routineId, exerciseId, replacementId, timestamp = Date.now()) {
+  const draft = store.drafts[routineId];
+  const error = getExerciseReplacementError(draft, exerciseId);
+  if (error) throw new Error(error);
+  if (NECK_CIRCUIT_IDS.includes(replacementId)
+    || !getAvailableExercises(draft).some((item) => item.id === replacementId)) {
+    throw new Error('Выберите другое упражнение из банка, которого ещё нет в тренировке');
+  }
+  const exercise = getExercise(draft, exerciseId);
+  const replacement = structuredCloneSafe(getRoutine(routineId).exercises.find((item) => item.id === replacementId)
+    || EXERCISE_BANK.find((item) => item.id === replacementId));
+  const originId = exercise.replaces || exerciseId;
+  if (originId !== replacementId) replacement.replaces = originId;
+  const sets = Array.from({ length: replacement.sets }, (_, index) => (
+    createSetResult(replacement, findPreviousSet(store.history, routineId, replacementId, index))
+  ));
+  draft.plan.exercises = draft.plan.exercises.map((item) => item.id === exerciseId ? replacement : item);
+  draft.addedExercises = draft.addedExercises.map((item) => item.id === exerciseId ? replacement : item);
+  draft.sets = Object.fromEntries(Object.entries(draft.sets).map(([id, results]) => (
+    id === exerciseId ? [replacementId, sets] : [id, results]
+  )));
+  draft.updatedAt = timestamp;
+  return draft;
+}
+
 export function workoutHasProgress(workout) {
   const routine = getWorkoutRoutine(workout);
   return !!workout.note?.trim() || getActiveWorkoutExercises(workout).some((exercise) => (
-    !routine.exercises.some((item) => item.id === exercise.id) || workout.sets[exercise.id].length > exercise.sets
+    !!exercise.replaces || !routine.exercises.some((item) => item.id === exercise.id) || workout.sets[exercise.id].length > exercise.sets
   ))
-    || Object.values(workout.sets).flat().some((set) => (
-      set.status !== 'pending'
-      || set.edited === true
-      || set.prefilled !== true && setHasValues(set)
-    ));
+    || Object.values(workout.sets).flat().some(setHasProgress);
 }
 
 export function finishWorkout(workout, timestamp = Date.now()) {
@@ -283,6 +317,14 @@ function setHasValues(set) {
     || set.seconds !== undefined && set.seconds !== ''
     || set.leftReps !== undefined && set.leftReps !== ''
     || set.rightReps !== undefined && set.rightReps !== '';
+}
+
+function setHasProgress(set) {
+  return set.status !== 'pending'
+    || set.edited === true
+    || set.prefilled !== true && setHasValues(set)
+    || set.rir !== undefined && set.rir !== ''
+    || !!set.note?.trim();
 }
 
 function structuredCloneSafe(value) {

@@ -363,6 +363,19 @@ h3 {
   line-height: 1.4;
 }
 
+.button-replace {
+  min-height: 44px;
+  margin-top: 8px;
+  padding: 8px 12px;
+  font-size: 0.78rem;
+}
+
+.replacement-label {
+  margin: 6px 0 0;
+  color: var(--lime);
+  font-size: 0.76rem;
+}
+
 .rest-badge {
   flex: 0 0 auto;
   padding: 6px 8px;
@@ -828,7 +841,8 @@ h3 {
   grid-column: 1 / -1;
 }
 
-.history-editor {
+.history-editor,
+.exercise-replacement {
   width: min(720px, calc(100% - 24px));
   max-height: calc(100dvh - 24px);
   padding: 16px;
@@ -839,7 +853,8 @@ h3 {
   overscroll-behavior: contain;
 }
 
-.history-editor::backdrop {
+.history-editor::backdrop,
+.exercise-replacement::backdrop {
   background: rgba(0, 0, 0, 0.75);
 }
 
@@ -857,6 +872,23 @@ h3 {
   bottom: -16px;
   padding-block: 12px;
   background: var(--surface);
+}
+
+.exercise-replacement {
+  width: min(520px, calc(100% - 24px));
+}
+
+.exercise-replacement > .muted {
+  margin-block: 12px;
+  line-height: 1.45;
+}
+
+.exercise-replacement .banner {
+  margin: 12px 0;
+}
+
+.replacement-actions {
+  grid-template-columns: 1fr;
 }
 
 .program-intro {
