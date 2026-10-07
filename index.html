@@ -8,7 +8,7 @@
   <link rel="manifest" href="./manifest.webmanifest">
   <link rel="icon" href="./icons/icon-192.png" sizes="192x192">
   <link rel="apple-touch-icon" href="./icons/icon-192.png">
-  <link rel="stylesheet" href="./styles.css?v=15">
+  <link rel="stylesheet" href="./styles.css?v=16">
   <title>40 минут — дневник зала</title>
 </head>
 <body>
@@ -24,6 +24,7 @@
     </div>
     <nav id="area-menu" class="area-menu" aria-label="Разделы приложения" hidden>
       <button type="button" data-area="regular" data-view="workout" aria-current="page">Силовые тренировки</button>
+      <button type="button" data-area="regular" data-view="program">Программа тренировок</button>
       <p class="area-menu-label">Восстановление</p>
       <button type="button" data-area="special" data-view="hands">Кисти и запястья</button>
       <button type="button" data-area="special" data-view="foot-ankle">Стопа и голеностоп</button>
@@ -102,15 +103,12 @@
     <section id="view-program" class="view" aria-labelledby="program-heading" hidden>
       <div class="section-heading">
         <div>
-          <p class="eyebrow">4 зала · 2 йоги · 1 отдых</p>
+          <p class="eyebrow">План на неделю</p>
           <h2 id="program-heading">Программа и техника</h2>
         </div>
       </div>
-      <article class="program-intro">
-        <p>Пн — ноги А · Вт — спина А · Ср — йога · Чт — ноги Б · Пт — спина Б · Сб — йога · Вс — полный отдых.</p>
-        <p>Первые 1–2 недели подобрать веса с запасом 2–3 повтора. Затем сначала достигать верхней границы повторений, потом повышать вес. Для становой — шаг 2,5 кг только при уверенных тройках.</p>
-        <p>Если результаты падают две тренировки подряд или копится усталость: примерно вдвое сократить рабочие подходы и снизить вес на 10–15%.</p>
-      </article>
+      <article id="program-intro" class="program-intro"></article>
+      <p class="program-links"><a href="./program.json" target="_blank" rel="noreferrer noopener">Файл программы</a><a href="https://github.com/slytry/gym-app/edit/main/program.json" target="_blank" rel="noreferrer noopener">Редактировать на GitHub</a></p>
       <div id="program-list" class="program-list"></div>
     </section>
 
@@ -365,6 +363,6 @@
     <button type="button" data-view="program">Программа</button>
   </nav>
 
-  <script type="module" src="./app.js?v=18"></script>
+  <script type="module" src="./bootstrap.js?v=19"></script>
 </body>
 </html>

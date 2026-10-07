@@ -4,6 +4,7 @@
   "type": "module",
   "scripts": {
     "dev": "python3 -m http.server 8080 --bind 127.0.0.1",
+    "check:program": "node --input-type=module -e \"import('./program.js').then(() => console.log('program.json: OK'))\"",
     "test": "node --test"
   }
 }

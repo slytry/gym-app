@@ -1,7 +1,7 @@
-import { WEIGHT_LABELS, getRoutine, getWorkoutExercises } from './program.js?v=17';
+import { WEIGHT_LABELS, getWorkoutRoutine, getWorkoutExercises } from './program.js?v=19';
 
 export function workoutToMarkdown(workout) {
-  const routine = getRoutine(workout.routineId);
+  const routine = getWorkoutRoutine(workout);
   const lines = [
     `# ${routine.name} — ${workout.date}`,
     '',
@@ -13,7 +13,7 @@ export function workoutToMarkdown(workout) {
 
   for (const exercise of getWorkoutExercises(workout)) {
     lines.push(`## ${exercise.name}`);
-    lines.push(`План: ${exercise.sets} × ${exercise.target}${exercise.optionalAfter ? ' (второй круг по самочувствию)' : ''}.`);
+    lines.push(`План: ${exercise.sets} × ${exercise.target}${exercise.optionalAfter !== undefined ? ` (по самочувствию начиная с подхода ${exercise.optionalAfter + 1})` : ''}.`);
     if (exercise.weight) lines.push(`Вес: ${WEIGHT_LABELS[exercise.weight]}.`);
     lines.push('');
 

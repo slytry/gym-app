@@ -544,7 +544,8 @@ h3 {
 }
 
 .technique-body a,
-.program-intro a {
+.program-intro a,
+.program-links a {
   color: var(--lime);
 }
 
@@ -756,6 +757,20 @@ h3 {
 
 .program-intro p:last-child {
   margin-bottom: 0;
+}
+
+.program-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin: 0 0 12px;
+}
+
+.program-links a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  font-size: 0.82rem;
 }
 
 .special-log {

@@ -1,14 +1,16 @@
 const CACHE_PREFIX = 'gym-log-pwa-';
-const CACHE_NAME = `${CACHE_PREFIX}v18`;
+const CACHE_NAME = `${CACHE_PREFIX}v19`;
 const APP_SHELL = [
   './',
   './index.html',
-  './styles.css?v=15',
-  './app.js?v=18',
-  './program.js?v=17',
-  './state.js?v=18',
+  './styles.css?v=16',
+  './bootstrap.js?v=19',
+  './app.js?v=19',
+  './program.js?v=19',
+  './program.json',
+  './state.js?v=19',
   './timer.js?v=10',
-  './export.js?v=17',
+  './export.js?v=19',
   './manifest.webmanifest',
   './icons/icon-192.png',
   './icons/icon-512.png',
@@ -59,8 +61,9 @@ self.addEventListener('fetch', (event) => {
   const request = event.request;
   const url = new URL(request.url);
   if (request.method !== 'GET' || url.origin !== self.location.origin) return;
+  const isProgram = url.pathname === new URL('./program.json', self.location).pathname;
 
-  if (request.mode === 'navigate') {
+  if (request.mode === 'navigate' && !isProgram) {
     event.respondWith(
       fetch(request).catch(() => caches.match('./index.html'))
     );
@@ -68,7 +71,7 @@ self.addEventListener('fetch', (event) => {
   }
 
   event.respondWith(
-    fetch(request).then((response) => {
+    fetch(request, isProgram ? { cache: 'no-cache' } : {}).then((response) => {
       if (response.ok) {
         const copy = response.clone();
         event.waitUntil(caches.open(CACHE_NAME).then((cache) => cache.put(request, copy)));

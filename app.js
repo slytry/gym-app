@@ -1,18 +1,21 @@
 import {
+  NECK_CIRCUIT,
   NECK_CIRCUIT_IDS,
   PROGRAM,
+  PROGRAM_GUIDANCE,
+  PROGRAM_SCHEDULE,
   WEIGHT_LABELS,
   getActiveWorkoutExercises,
   getAvailableExercises,
   getExercise,
-  getRoutine,
-  getWorkoutExercises
-} from './program.js?v=17';
+  getWorkoutExercises,
+  getWorkoutNeckCircuit,
+  getWorkoutRoutine
+} from './program.js?v=19';
 import {
   addWorkoutExercise,
   addWorkoutSet,
   countStatuses,
-  createSetResult,
   ensureDraft,
   findPreviousSet,
   finishWorkout,
@@ -22,7 +25,7 @@ import {
   startNewDraft,
   transitionSetStatus,
   workoutHasProgress
-} from './state.js?v=18';
+} from './state.js?v=19';
 import {
   addTimerSeconds,
   formatTimer,
@@ -32,7 +35,7 @@ import {
   settleTimer,
   startTimer
 } from './timer.js?v=10';
-import { formatLocalDateTime, formatSetResult, workoutToMarkdown, workoutsToMarkdown } from './export.js?v=17';
+import { formatLocalDateTime, formatSetResult, workoutToMarkdown, workoutsToMarkdown } from './export.js?v=19';
 
 const elements = {
   storageWarning: document.querySelector('#storage-warning'),
@@ -64,6 +67,7 @@ const elements = {
   historyEmpty: document.querySelector('#history-empty'),
   historyList: document.querySelector('#history-list'),
   exportAll: document.querySelector('#export-all'),
+  programIntro: document.querySelector('#program-intro'),
   programList: document.querySelector('#program-list')
 };
 
@@ -78,6 +82,7 @@ if (loaded.error) showStorageError(loaded.error);
 
 renderProgram();
 renderWorkout();
+if (!loaded.error) persist();
 renderHistory();
 renderSpecialHistory('hands');
 renderSpecialHistory('foot-ankle');
@@ -178,7 +183,7 @@ function bindEvents() {
     if (addButton) {
       const exerciseId = addButton.dataset.addSet;
       const draft = addWorkoutSet(store, store.selectedRoutineId, exerciseId);
-      if (NECK_CIRCUIT_IDS.includes(exerciseId)) activeNeckRound = draft.sets[exerciseId].length - 1;
+      if (getWorkoutNeckCircuit(draft).exerciseIds.includes(exerciseId)) activeNeckRound = draft.sets[exerciseId].length - 1;
       const saved = persist();
       renderWorkout();
       elements.exerciseList.querySelector(`[data-add-set="${exerciseId}"]`).focus();
@@ -309,18 +314,9 @@ function setExerciseBankOpen(open) {
 }
 
 function renderWorkout() {
-  const routine = getRoutine(store.selectedRoutineId);
-  const draft = ensureDraft(store, routine.id);
-  let addedMissingSets = false;
-  for (const exercise of routine.exercises) {
-    if (!draft.sets[exercise.id]) {
-      draft.sets[exercise.id] = Array.from({ length: exercise.sets }, (_, index) => (
-        createSetResult(exercise, findPreviousSet(store.history, routine.id, exercise.id, index))
-      ));
-      addedMissingSets = true;
-    }
-  }
-  if (addedMissingSets) persist();
+  const draft = ensureDraft(store, store.selectedRoutineId);
+  const routine = getWorkoutRoutine(draft);
+  const circuitIds = getWorkoutNeckCircuit(draft).exerciseIds;
   const statuses = countStatuses(draft);
 
   elements.daySelector.innerHTML = PROGRAM.map((item) => `
@@ -334,8 +330,8 @@ function renderWorkout() {
   elements.workoutDate.textContent = `Черновик от ${formatDate(draft.startedAt)}`;
   elements.workoutProgress.textContent = `${statuses.done}/${statuses.total} готово`;
   elements.exerciseList.innerHTML = getActiveWorkoutExercises(draft).map((exercise) => {
-    if (exercise.id === NECK_CIRCUIT_IDS[0]) return renderNeckCircuit(draft);
-    if (NECK_CIRCUIT_IDS.includes(exercise.id)) return '';
+    if (exercise.id === circuitIds[0]) return renderNeckCircuit(draft);
+    if (circuitIds.includes(exercise.id)) return '';
     return renderExercise(exercise, draft);
   }).join('');
   bindOptionalImageErrors(elements.exerciseList);
@@ -347,7 +343,7 @@ function renderExerciseBank(draft) {
   elements.exerciseBankEmpty.hidden = exercises.length > 0;
   elements.exerciseBankList.innerHTML = exercises.map((exercise) => {
     const neck = exercise.id === NECK_CIRCUIT_IDS[0];
-    const name = neck ? 'Шея — круг из 4 направлений' : exercise.name;
+    const name = neck ? `${NECK_CIRCUIT.name} — круг из ${NECK_CIRCUIT_IDS.length} направлений` : exercise.name;
     return `
       <button class="exercise-choice" type="button" data-add-exercise="${exercise.id}" aria-label="${escapeHtml(`Добавить: ${name}`)}">
         <span>
@@ -386,43 +382,45 @@ function renderExercise(exercise, draft) {
 }
 
 function renderNeckCircuit(draft) {
-  const directions = NECK_CIRCUIT_IDS.map((id) => getExercise(draft.routineId, id));
+  const circuit = getWorkoutNeckCircuit(draft);
+  const directions = circuit.exerciseIds.map((id) => getExercise(draft, id));
   const roundCount = draft.sets[directions[0].id].length;
   return `
     <article class="exercise-card neck-circuit">
       <header class="exercise-header">
         <div>
-          <h3>Шея — круг из 4 направлений</h3>
-          <p class="exercise-meta">10–15 с на направление · дополнительные круги по самочувствию</p>
+          <h3>${escapeHtml(circuit.name)} — круг из ${directions.length} направлений</h3>
+          <p class="exercise-meta">${escapeHtml(directions[0].target)} на направление</p>
         </div>
-        <span class="rest-badge">Отдых 0:30</span>
+        <span class="rest-badge">Отдых ${formatTimer(directions.at(-1).restSeconds * 1000)}</span>
       </header>
       <div class="circuit-tabs" role="tablist" aria-label="Круги тренировки шеи">
         ${Array.from({ length: roundCount }, (_, index) => `
           <button id="neck-tab-${index}" type="button" role="tab" data-neck-round="${index}" aria-controls="neck-round-${index}" aria-selected="${index === activeNeckRound}" tabindex="${index === activeNeckRound ? 0 : -1}">
-            Круг ${index + 1} · ${directions.filter((direction) => draft.sets[direction.id][index].status === 'done').length}/4
+            Круг ${index + 1} · ${directions.filter((direction) => draft.sets[direction.id][index].status === 'done').length}/${directions.length}
           </button>
         `).join('')}
       </div>
       ${Array.from({ length: roundCount }, (_, index) => `
         <div id="neck-round-${index}" class="circuit-round" role="tabpanel" aria-labelledby="neck-tab-${index}" ${index === activeNeckRound ? '' : 'hidden'}>
-          ${index ? '<p class="circuit-note">Дополнительный круг — по самочувствию.</p>' : ''}
+          ${index >= (directions[0].optionalAfter ?? roundCount) ? `<p class="circuit-note">${escapeHtml(circuit.extraRoundNote)}</p>` : ''}
           <div class="sets">${directions.map((direction) => renderSetRow(
             direction,
             draft.sets[direction.id][index],
             findPreviousSet(store.history, draft.routineId, direction.id, index),
             index,
-            true
+            true,
+            circuit.exerciseIds
           )).join('')}</div>
         </div>
       `).join('')}
       <div class="sets">
-        <button class="button button-add-set button-icon" type="button" data-add-set="${NECK_CIRCUIT_IDS[0]}"><span class="add-icon" aria-hidden="true">+</span> Добавить круг</button>
+        <button class="button button-add-set button-icon" type="button" data-add-set="${circuit.exerciseIds[0]}"><span class="add-icon" aria-hidden="true">+</span> Добавить круг</button>
       </div>
       <details class="technique">
         <summary>Техника</summary>
         <div class="technique-body">
-          <p>Лёгкое усилие ладонью навстречу голове без движения шеи и задержки дыхания. Лоб → затылок → левый → правый висок. Отдых после полного круга.</p>
+          <p>${escapeHtml(circuit.technique)}</p>
         </div>
       </details>
     </article>
@@ -441,7 +439,7 @@ function selectNeckRound(index) {
   });
 }
 
-function renderSetRow(exercise, result, previous, index, inCircuit = false) {
+function renderSetRow(exercise, result, previous, index, inCircuit = false, circuitIds = []) {
   const inputs = inputDefinitions(exercise).map((input) => `
     <div class="input-wrap">
       <label for="${exercise.id}-${index}-${input.field}">${input.label}</label>
@@ -461,12 +459,12 @@ function renderSetRow(exercise, result, previous, index, inCircuit = false) {
     </div>
   `).join('');
 
-  const optional = exercise.optionalAfter && index >= exercise.optionalAfter;
+  const optional = exercise.optionalAfter !== undefined && index >= exercise.optionalAfter;
   const hint = renderSetHint(exercise, result, previous);
 
   return `
     <div class="set-row">
-      <div class="set-number ${optional ? 'optional-label' : ''}" title="${inCircuit ? escapeHtml(exercise.name) : optional ? 'По самочувствию' : `Подход ${index + 1}`}">${inCircuit ? NECK_CIRCUIT_IDS.indexOf(exercise.id) + 1 : index + 1}</div>
+      <div class="set-number ${optional ? 'optional-label' : ''}" title="${inCircuit ? escapeHtml(exercise.name) : optional ? 'По самочувствию' : `Подход ${index + 1}`}">${inCircuit ? circuitIds.indexOf(exercise.id) + 1 : index + 1}</div>
       <div class="set-content">
         ${inCircuit ? `<h4 class="circuit-direction">${escapeHtml(exercise.name)}</h4>` : ''}
         <div class="set-inputs" style="--input-count: ${inputDefinitions(exercise).length}">${inputs}</div>
@@ -474,7 +472,7 @@ function renderSetRow(exercise, result, previous, index, inCircuit = false) {
           <button class="status-button" type="button" data-status="done" data-exercise-id="${exercise.id}" data-set-index="${index}" aria-pressed="${result.status === 'done'}">Готово</button>
           <button class="status-button" type="button" data-status="skipped" data-exercise-id="${exercise.id}" data-set-index="${index}" aria-pressed="${result.status === 'skipped'}">Пропуск</button>
         </div>
-        ${optional && !inCircuit ? '<p class="previous-hint">Второй круг — по самочувствию.</p>' : ''}
+        ${optional && !inCircuit ? '<p class="previous-hint">По самочувствию.</p>' : ''}
         ${hint}
       </div>
     </div>
@@ -513,11 +511,11 @@ function renderSetHint(exercise, result, previous) {
 
 function renderTechnique(exercise) {
   const image = exercise.image
-    ? `<img class="technique-image" src="${exercise.image}" alt="${escapeHtml(exercise.name)}" loading="lazy" referrerpolicy="no-referrer">`
+    ? `<img class="technique-image" src="${escapeHtml(exercise.image)}" alt="${escapeHtml(exercise.name)}" loading="lazy" referrerpolicy="no-referrer">`
     : '';
   const note = exercise.note ? `<p>${escapeHtml(exercise.note)}</p>` : '';
   const links = exercise.links?.length
-    ? `<p>${exercise.links.map((link) => `<a href="${link.url}" target="_blank" rel="noreferrer noopener">${escapeHtml(link.label)}</a>`).join(' · ')}</p>`
+    ? `<p>${exercise.links.map((link) => `<a href="${escapeHtml(link.url)}" target="_blank" rel="noreferrer noopener">${escapeHtml(link.label)}</a>`).join(' · ')}</p>`
     : '';
   const tips = exercise.tips?.length
     ? `<ul>${exercise.tips.map((tip) => `<li>${escapeHtml(tip)}</li>`).join('')}</ul>`
@@ -567,7 +565,7 @@ function renderHistory() {
   elements.historyEmpty.hidden = workouts.length > 0;
   elements.exportAll.disabled = workouts.length === 0;
   elements.historyList.innerHTML = workouts.map((workout) => {
-    const routine = getRoutine(workout.routineId);
+    const routine = getWorkoutRoutine(workout);
     const statuses = countStatuses(workout);
     const exercises = getWorkoutExercises(workout).map((exercise) => {
       const sets = (workout.sets[exercise.id] || []).map((set, index) => (
@@ -601,6 +599,13 @@ function renderSpecialHistory(routineId) {
 }
 
 function renderProgram() {
+  const schedule = PROGRAM_SCHEDULE.map((entry) => {
+    if (!entry.routineId) return `${entry.day} — ${entry.activity}`;
+    const routine = PROGRAM.find((item) => item.id === entry.routineId);
+    return `${routine.day} — ${routine.name}`;
+  }).join(' · ');
+  elements.programIntro.innerHTML = [schedule, ...PROGRAM_GUIDANCE]
+    .map((paragraph) => `<p>${escapeHtml(paragraph)}</p>`).join('');
   elements.programList.innerHTML = PROGRAM.map((routine) => `
     <details class="program-day">
       <summary>${escapeHtml(`${routine.weekday} · ${routine.name}`)}</summary>
@@ -619,7 +624,7 @@ function renderProgram() {
 }
 
 function programRestLabel(exercise) {
-  if (exercise.id === NECK_CIRCUIT_IDS.at(-1)) return 'отдых 0:30 после круга';
+  if (exercise.id === NECK_CIRCUIT_IDS.at(-1)) return `отдых ${formatTimer(exercise.restSeconds * 1000)} после круга`;
   if (NECK_CIRCUIT_IDS.includes(exercise.id)) return 'без паузы до следующего направления';
   return `отдых ${escapeHtml(exercise.rest)} · авто ${formatTimer(exercise.restSeconds * 1000)}`;
 }
@@ -632,7 +637,7 @@ function showView(viewName) {
   elements.bottomNav.hidden = special;
   elements.areaLabel.textContent = special ? 'Восстановление' : 'Силовые тренировки';
   elements.areaMenu.querySelectorAll('[data-area]').forEach((button) => {
-    if (button.dataset.view === (special ? viewName : 'workout')) button.setAttribute('aria-current', 'page');
+    if (button.dataset.view === viewName) button.setAttribute('aria-current', 'page');
     else button.removeAttribute('aria-current');
   });
   setAreaMenuOpen(false);

@@ -1,13 +1,16 @@
 import {
   EXERCISE_BANK,
+  NECK_CIRCUIT,
   NECK_CIRCUIT_IDS,
   PROGRAM,
   getActiveWorkoutExercises,
   getAvailableExercises,
   getExercise,
   getRoutine,
-  getWorkoutExercises
-} from './program.js?v=17';
+  getWorkoutExercises,
+  getWorkoutNeckCircuit,
+  getWorkoutRoutine
+} from './program.js?v=19';
 import { createTimerState, startTimer } from './timer.js?v=10';
 
 export const STORAGE_KEY = 'gym-log-pwa:v1';
@@ -48,11 +51,13 @@ export function createWorkout(routineId, timestamp = Date.now(), id = createId(t
     startedAt: timestamp,
     updatedAt: timestamp,
     finishedAt: null,
-    sets
+    sets,
+    plan: structuredCloneSafe({ ...routine, neckCircuit: NECK_CIRCUIT }),
+    addedExercises: []
   };
 }
 
-export function createSetResult(exercise, previous = null) {
+function createSetResult(exercise, previous = null) {
   const fallback = String(planLowerBound(exercise.target));
   const result = {
     status: 'pending',
@@ -74,7 +79,8 @@ export function createSetResult(exercise, previous = null) {
 export function ensureDraft(store, routineId, timestamp = Date.now()) {
   if (store.drafts[routineId]) {
     const draft = store.drafts[routineId];
-    for (const exercise of getRoutine(routineId).exercises) {
+    ensureWorkoutPlan(draft);
+    for (const exercise of getWorkoutRoutine(draft).exercises) {
       if (!draft.sets[exercise.id]) {
         draft.sets[exercise.id] = Array.from({ length: exercise.sets }, (_, index) => (
           createSetResult(exercise, findPreviousSet(store.history, routineId, exercise.id, index))
@@ -101,8 +107,11 @@ export function addWorkoutExercise(store, routineId, exerciseId, timestamp = Dat
   const draft = ensureDraft(store, routineId, timestamp);
   if (!getAvailableExercises(draft).some((exercise) => exercise.id === bankId)) return draft;
   const exerciseIds = NECK_CIRCUIT_IDS.includes(bankId) ? NECK_CIRCUIT_IDS : [bankId];
+  if (NECK_CIRCUIT_IDS.includes(bankId)) draft.plan.neckCircuit = structuredCloneSafe(NECK_CIRCUIT);
   for (const id of exerciseIds) {
-    const exercise = getExercise(routineId, id);
+    const exercise = getRoutine(routineId).exercises.find((item) => item.id === id)
+      || EXERCISE_BANK.find((item) => item.id === id);
+    draft.addedExercises.push(structuredCloneSafe(exercise));
     draft.sets[id] = Array.from({ length: exercise.sets }, (_, index) => (
       createSetResult(exercise, findPreviousSet(store.history, routineId, id, index))
     ));
@@ -113,9 +122,10 @@ export function addWorkoutExercise(store, routineId, exerciseId, timestamp = Dat
 
 export function addWorkoutSet(store, routineId, exerciseId, timestamp = Date.now()) {
   const draft = ensureDraft(store, routineId, timestamp);
-  const exerciseIds = NECK_CIRCUIT_IDS.includes(exerciseId) ? NECK_CIRCUIT_IDS : [exerciseId];
+  const circuitIds = getWorkoutNeckCircuit(draft).exerciseIds;
+  const exerciseIds = circuitIds.includes(exerciseId) ? circuitIds : [exerciseId];
   for (const id of exerciseIds) {
-    const exercise = getExercise(routineId, id);
+    const exercise = getExercise(draft, id);
     const previous = findPreviousSet(store.history, routineId, id, draft.sets[id].length);
     draft.sets[id].push(createSetResult(exercise, previous));
   }
@@ -124,7 +134,7 @@ export function addWorkoutSet(store, routineId, exerciseId, timestamp = Date.now
 }
 
 export function workoutHasProgress(workout) {
-  const routine = getRoutine(workout.routineId);
+  const routine = getWorkoutRoutine(workout);
   return getActiveWorkoutExercises(workout).some((exercise) => (
     !routine.exercises.some((item) => item.id === exercise.id) || workout.sets[exercise.id].length > exercise.sets
   ))
@@ -136,8 +146,13 @@ export function workoutHasProgress(workout) {
 }
 
 export function finishWorkout(workout, timestamp = Date.now()) {
+  const completed = structuredCloneSafe(workout);
+  ensureWorkoutPlan(completed);
+  const routine = getWorkoutRoutine(completed);
+  completed.addedExercises = structuredCloneSafe(getWorkoutExercises(completed)
+    .filter((exercise) => !routine.exercises.some((item) => item.id === exercise.id)));
   return {
-    ...structuredCloneSafe(workout),
+    ...completed,
     updatedAt: timestamp,
     finishedAt: timestamp
   };
@@ -170,9 +185,10 @@ export function transitionSetStatus(workout, timer, exerciseId, setIndex, reques
 
   if (nextStatus !== 'done') return timer;
 
-  if (NECK_CIRCUIT_IDS.includes(exerciseId) && exerciseId !== NECK_CIRCUIT_IDS.at(-1)) return timer;
+  const circuitIds = getWorkoutNeckCircuit(workout).exerciseIds;
+  if (circuitIds.includes(exerciseId) && exerciseId !== circuitIds.at(-1)) return timer;
 
-  const exercise = getExercise(workout.routineId, exerciseId);
+  const exercise = getExercise(workout, exerciseId);
   return startTimer(timer, exercise.restSeconds, timestamp);
 }
 
@@ -203,13 +219,15 @@ export function parseStore(raw) {
   if (parsed.specialHistory !== undefined && !Array.isArray(parsed.specialHistory)) {
     throw new Error('Неподдерживаемый формат локальных данных');
   }
-  return {
+  const store = {
     ...createInitialStore(),
     ...parsed,
     selectedRoutineId: validRoutine ? parsed.selectedRoutineId : PROGRAM[0].id,
     specialHistory: parsed.specialHistory || [],
     timer: { ...createTimerState(), ...(parsed.timer || {}) }
   };
+  for (const workout of [...Object.values(store.drafts), ...store.history]) ensureWorkoutPlan(workout);
+  return store;
 }
 
 export function loadStore(storage) {
@@ -233,6 +251,15 @@ export function saveStore(storage, store) {
       error: `Данные не сохранены: ${error.message}. Не закрывайте страницу до экспорта.`
     };
   }
+}
+
+function ensureWorkoutPlan(workout) {
+  if (workout.plan) return;
+  const routine = getRoutine(workout.routineId);
+  const exercises = workout.finishedAt ? getWorkoutExercises(workout) : getActiveWorkoutExercises(workout);
+  workout.addedExercises = structuredCloneSafe(exercises
+    .filter((exercise) => !routine.exercises.some((item) => item.id === exercise.id)));
+  workout.plan = structuredCloneSafe({ ...routine, neckCircuit: NECK_CIRCUIT });
 }
 
 function createId(timestamp) {
