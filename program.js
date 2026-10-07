@@ -305,6 +305,9 @@ export const PROGRAM = [
   }
 ];
 
+export const EXERCISE_BANK = PROGRAM.flatMap((routine) => routine.exercises)
+  .filter((exercise, index, exercises) => exercises.findIndex((item) => item.name === exercise.name) === index);
+
 export const WEIGHT_LABELS = {
   barbell: 'кг, общий вес',
   machine: 'кг тренажёра',
@@ -346,10 +349,27 @@ export function getRoutine(routineId) {
 }
 
 export function getExercise(routineId, exerciseId) {
-  return getRoutine(routineId).exercises.find((exercise) => exercise.id === exerciseId);
+  return getRoutine(routineId).exercises.find((exercise) => exercise.id === exerciseId)
+    || EXERCISE_BANK.find((exercise) => exercise.id === exerciseId);
+}
+
+export function getActiveWorkoutExercises(workout) {
+  return Object.keys(workout.sets)
+    .map((id) => getExercise(workout.routineId, id))
+    .filter(Boolean);
+}
+
+export function getAvailableExercises(workout) {
+  const names = new Set(getActiveWorkoutExercises(workout).map((exercise) => exercise.name));
+  return EXERCISE_BANK
+    .filter((exercise) => !names.has(exercise.name)
+      && (!NECK_CIRCUIT_IDS.includes(exercise.id) || exercise.id === NECK_CIRCUIT_IDS[0]))
+    .sort((a, b) => a.name.localeCompare(b.name, 'ru'));
 }
 
 export function getWorkoutExercises(workout) {
-  return [...getRoutine(workout.routineId).exercises, ...LEGACY_EXERCISES]
-    .filter((exercise) => workout.sets[exercise.id]);
+  return [
+    ...getActiveWorkoutExercises(workout),
+    ...LEGACY_EXERCISES.filter((exercise) => workout.sets[exercise.id])
+  ];
 }

@@ -1,4 +1,13 @@
-import { NECK_CIRCUIT_IDS, PROGRAM, getExercise, getRoutine, getWorkoutExercises } from './program.js?v=15';
+import {
+  EXERCISE_BANK,
+  NECK_CIRCUIT_IDS,
+  PROGRAM,
+  getActiveWorkoutExercises,
+  getAvailableExercises,
+  getExercise,
+  getRoutine,
+  getWorkoutExercises
+} from './program.js?v=17';
 import { createTimerState, startTimer } from './timer.js?v=9';
 
 export const STORAGE_KEY = 'gym-log-pwa:v1';
@@ -84,12 +93,46 @@ export function startNewDraft(store, routineId, timestamp = Date.now()) {
   return draft;
 }
 
+export function addWorkoutExercise(store, routineId, exerciseId, timestamp = Date.now()) {
+  const bankId = NECK_CIRCUIT_IDS.includes(exerciseId) ? NECK_CIRCUIT_IDS[0] : exerciseId;
+  if (!EXERCISE_BANK.some((exercise) => exercise.id === bankId)) {
+    throw new Error('Упражнение не найдено в банке');
+  }
+  const draft = ensureDraft(store, routineId, timestamp);
+  if (!getAvailableExercises(draft).some((exercise) => exercise.id === bankId)) return draft;
+  const exerciseIds = NECK_CIRCUIT_IDS.includes(bankId) ? NECK_CIRCUIT_IDS : [bankId];
+  for (const id of exerciseIds) {
+    const exercise = getExercise(routineId, id);
+    draft.sets[id] = Array.from({ length: exercise.sets }, (_, index) => (
+      createSetResult(exercise, findPreviousSet(store.history, routineId, id, index))
+    ));
+  }
+  draft.updatedAt = timestamp;
+  return draft;
+}
+
+export function addWorkoutSet(store, routineId, exerciseId, timestamp = Date.now()) {
+  const draft = ensureDraft(store, routineId, timestamp);
+  const exerciseIds = NECK_CIRCUIT_IDS.includes(exerciseId) ? NECK_CIRCUIT_IDS : [exerciseId];
+  for (const id of exerciseIds) {
+    const exercise = getExercise(routineId, id);
+    const previous = findPreviousSet(store.history, routineId, id, draft.sets[id].length);
+    draft.sets[id].push(createSetResult(exercise, previous));
+  }
+  draft.updatedAt = timestamp;
+  return draft;
+}
+
 export function workoutHasProgress(workout) {
-  return Object.values(workout.sets).flat().some((set) => (
-    set.status !== 'pending'
-    || set.edited === true
-    || set.prefilled !== true && setHasValues(set)
-  ));
+  const routine = getRoutine(workout.routineId);
+  return getActiveWorkoutExercises(workout).some((exercise) => (
+    !routine.exercises.some((item) => item.id === exercise.id) || workout.sets[exercise.id].length > exercise.sets
+  ))
+    || Object.values(workout.sets).flat().some((set) => (
+      set.status !== 'pending'
+      || set.edited === true
+      || set.prefilled !== true && setHasValues(set)
+    ));
 }
 
 export function finishWorkout(workout, timestamp = Date.now()) {
@@ -134,7 +177,7 @@ export function transitionSetStatus(workout, timer, exerciseId, setIndex, reques
 }
 
 export function countStatuses(workout) {
-  const exercises = workout.finishedAt ? getWorkoutExercises(workout) : getRoutine(workout.routineId).exercises;
+  const exercises = workout.finishedAt ? getWorkoutExercises(workout) : getActiveWorkoutExercises(workout);
   const results = exercises.flatMap((exercise) => workout.sets[exercise.id] || []);
   return {
     done: results.filter((set) => set.status === 'done').length,

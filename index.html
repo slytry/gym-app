@@ -67,7 +67,17 @@
         <div id="workout-progress" class="progress-pill"></div>
       </article>
 
-      <div id="exercise-list" class="exercise-list"></div>
+      <div class="exercise-list">
+        <div id="exercise-list" class="exercise-list"></div>
+        <details id="exercise-bank" class="program-day">
+          <summary>Добавить упражнение</summary>
+          <div class="program-exercises">
+            <p class="muted">Банк упражнений из программы. Добавление действует только в текущей тренировке.</p>
+            <div id="exercise-bank-list" class="exercise-list"></div>
+            <p id="exercise-bank-empty" class="muted" hidden>Все упражнения из банка уже добавлены.</p>
+          </div>
+        </details>
+      </div>
 
       <div class="workout-actions">
         <button id="finish-workout" class="button button-primary" type="button">Завершить тренировку</button>
@@ -354,6 +364,6 @@
     <button type="button" data-view="program">Программа</button>
   </nav>
 
-  <script type="module" src="./app.js?v=15"></script>
+  <script type="module" src="./app.js?v=17"></script>
 </body>
 </html>

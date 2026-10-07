@@ -1,5 +1,16 @@
-import { NECK_CIRCUIT_IDS, PROGRAM, WEIGHT_LABELS, getRoutine, getWorkoutExercises } from './program.js?v=15';
 import {
+  NECK_CIRCUIT_IDS,
+  PROGRAM,
+  WEIGHT_LABELS,
+  getActiveWorkoutExercises,
+  getAvailableExercises,
+  getExercise,
+  getRoutine,
+  getWorkoutExercises
+} from './program.js?v=17';
+import {
+  addWorkoutExercise,
+  addWorkoutSet,
   countStatuses,
   createSetResult,
   ensureDraft,
@@ -11,7 +22,7 @@ import {
   startNewDraft,
   transitionSetStatus,
   workoutHasProgress
-} from './state.js?v=15';
+} from './state.js?v=17';
 import {
   formatTimer,
   pauseTimer,
@@ -20,7 +31,7 @@ import {
   settleTimer,
   startTimer
 } from './timer.js?v=9';
-import { formatLocalDateTime, formatSetResult, workoutToMarkdown, workoutsToMarkdown } from './export.js?v=15';
+import { formatLocalDateTime, formatSetResult, workoutToMarkdown, workoutsToMarkdown } from './export.js?v=17';
 
 const elements = {
   storageWarning: document.querySelector('#storage-warning'),
@@ -37,6 +48,9 @@ const elements = {
   workoutDate: document.querySelector('#workout-date'),
   workoutProgress: document.querySelector('#workout-progress'),
   exerciseList: document.querySelector('#exercise-list'),
+  exerciseBank: document.querySelector('#exercise-bank'),
+  exerciseBankList: document.querySelector('#exercise-bank-list'),
+  exerciseBankEmpty: document.querySelector('#exercise-bank-empty'),
   finishWorkout: document.querySelector('#finish-workout'),
   newWorkout: document.querySelector('#new-workout'),
   timerDisplay: document.querySelector('#timer-heading'),
@@ -102,6 +116,19 @@ function bindEvents() {
     renderWorkout();
   });
 
+  elements.exerciseBankList.addEventListener('click', (event) => {
+    const button = event.target.closest('[data-add-exercise]');
+    if (!button) return;
+    const exerciseId = button.dataset.addExercise;
+    addWorkoutExercise(store, store.selectedRoutineId, exerciseId);
+    if (NECK_CIRCUIT_IDS.includes(exerciseId)) activeNeckRound = 0;
+    const saved = persist();
+    renderWorkout();
+    elements.exerciseBank.open = false;
+    elements.exerciseList.querySelector(`[data-add-set="${exerciseId}"]`).focus();
+    showToast(saved ? 'Упражнение добавлено' : 'Упражнение добавлено только в памяти: данные не сохранены');
+  });
+
   elements.exerciseList.addEventListener('input', (event) => {
     const input = event.target.closest('[data-exercise-id][data-set-index][data-field]');
     if (!input) return;
@@ -119,6 +146,17 @@ function bindEvents() {
     const tab = event.target.closest('[data-neck-round]');
     if (tab) {
       selectNeckRound(Number(tab.dataset.neckRound));
+      return;
+    }
+    const addButton = event.target.closest('[data-add-set]');
+    if (addButton) {
+      const exerciseId = addButton.dataset.addSet;
+      const draft = addWorkoutSet(store, store.selectedRoutineId, exerciseId);
+      if (NECK_CIRCUIT_IDS.includes(exerciseId)) activeNeckRound = draft.sets[exerciseId].length - 1;
+      const saved = persist();
+      renderWorkout();
+      elements.exerciseList.querySelector(`[data-add-set="${exerciseId}"]`).focus();
+      if (!saved) showToast('Подход добавлен только в памяти: данные не сохранены');
       return;
     }
     const button = event.target.closest('.status-button');
@@ -142,11 +180,12 @@ function bindEvents() {
 
   elements.exerciseList.addEventListener('keydown', (event) => {
     if (!event.target.matches('[data-neck-round]')) return;
+    const roundCount = elements.exerciseList.querySelectorAll('[data-neck-round]').length;
     const next = {
-      ArrowLeft: 1 - activeNeckRound,
-      ArrowRight: 1 - activeNeckRound,
+      ArrowLeft: (activeNeckRound + roundCount - 1) % roundCount,
+      ArrowRight: (activeNeckRound + 1) % roundCount,
       Home: 0,
-      End: 1
+      End: roundCount - 1
     }[event.key];
     if (next === undefined) return;
     event.preventDefault();
@@ -247,12 +286,28 @@ function renderWorkout() {
   elements.workoutHeading.textContent = routine.name;
   elements.workoutDate.textContent = `Черновик от ${formatDate(draft.startedAt)}`;
   elements.workoutProgress.textContent = `${statuses.done}/${statuses.total} готово`;
-  elements.exerciseList.innerHTML = routine.exercises.map((exercise) => {
-    if (exercise.id === NECK_CIRCUIT_IDS[0]) return renderNeckCircuit(routine, draft);
+  elements.exerciseList.innerHTML = getActiveWorkoutExercises(draft).map((exercise) => {
+    if (exercise.id === NECK_CIRCUIT_IDS[0]) return renderNeckCircuit(draft);
     if (NECK_CIRCUIT_IDS.includes(exercise.id)) return '';
     return renderExercise(exercise, draft);
   }).join('');
   bindOptionalImageErrors(elements.exerciseList);
+  renderExerciseBank(draft);
+}
+
+function renderExerciseBank(draft) {
+  const exercises = getAvailableExercises(draft);
+  elements.exerciseBankEmpty.hidden = exercises.length > 0;
+  elements.exerciseBankList.innerHTML = exercises.map((exercise) => {
+    const neck = exercise.id === NECK_CIRCUIT_IDS[0];
+    const name = neck ? 'Шея — круг из 4 направлений' : exercise.name;
+    return `
+      <button class="button button-quiet" type="button" data-add-exercise="${exercise.id}">
+        ${escapeHtml(name)}<br>
+        <span class="muted">${exercise.sets} ${neck ? 'круга по' : '×'} ${escapeHtml(exercise.target)}</span>
+      </button>
+    `;
+  }).join('');
 }
 
 function renderExercise(exercise, draft) {
@@ -267,37 +322,41 @@ function renderExercise(exercise, draft) {
       <header class="exercise-header">
         <div>
           <h3>${escapeHtml(exercise.name)}</h3>
-          <p class="exercise-meta">${exercise.sets} × ${escapeHtml(exercise.target)}${escapeHtml(weightText)}</p>
+          <p class="exercise-meta">${draft.sets[exercise.id].length} × ${escapeHtml(exercise.target)}${escapeHtml(weightText)}</p>
         </div>
         <span class="rest-badge">Отдых ${formatTimer(exercise.restSeconds * 1000)}</span>
       </header>
-      <div class="sets">${setRows}</div>
+      <div class="sets">
+        ${setRows}
+        <button class="button button-quiet" type="button" data-add-set="${exercise.id}" aria-label="${escapeHtml(`Добавить подход: ${exercise.name}`)}">Добавить подход</button>
+      </div>
       ${renderTechnique(exercise)}
     </article>
   `;
 }
 
-function renderNeckCircuit(routine, draft) {
-  const directions = NECK_CIRCUIT_IDS.map((id) => routine.exercises.find((exercise) => exercise.id === id));
+function renderNeckCircuit(draft) {
+  const directions = NECK_CIRCUIT_IDS.map((id) => getExercise(draft.routineId, id));
+  const roundCount = draft.sets[directions[0].id].length;
   return `
     <article class="exercise-card neck-circuit">
       <header class="exercise-header">
         <div>
           <h3>Шея — круг из 4 направлений</h3>
-          <p class="exercise-meta">10–15 с на направление · второй круг по самочувствию</p>
+          <p class="exercise-meta">10–15 с на направление · дополнительные круги по самочувствию</p>
         </div>
         <span class="rest-badge">Отдых 0:30</span>
       </header>
       <div class="circuit-tabs" role="tablist" aria-label="Круги тренировки шеи">
-        ${Array.from({ length: directions[0].sets }, (_, index) => `
+        ${Array.from({ length: roundCount }, (_, index) => `
           <button id="neck-tab-${index}" type="button" role="tab" data-neck-round="${index}" aria-controls="neck-round-${index}" aria-selected="${index === activeNeckRound}" tabindex="${index === activeNeckRound ? 0 : -1}">
             Круг ${index + 1} · ${directions.filter((direction) => draft.sets[direction.id][index].status === 'done').length}/4
           </button>
         `).join('')}
       </div>
-      ${Array.from({ length: directions[0].sets }, (_, index) => `
+      ${Array.from({ length: roundCount }, (_, index) => `
         <div id="neck-round-${index}" class="circuit-round" role="tabpanel" aria-labelledby="neck-tab-${index}" ${index === activeNeckRound ? '' : 'hidden'}>
-          ${index ? '<p class="circuit-note">Второй круг — по самочувствию.</p>' : ''}
+          ${index ? '<p class="circuit-note">Дополнительный круг — по самочувствию.</p>' : ''}
           <div class="sets">${directions.map((direction) => renderSetRow(
             direction,
             draft.sets[direction.id][index],
@@ -307,6 +366,9 @@ function renderNeckCircuit(routine, draft) {
           )).join('')}</div>
         </div>
       `).join('')}
+      <div class="sets">
+        <button class="button button-quiet" type="button" data-add-set="${NECK_CIRCUIT_IDS[0]}">Добавить круг</button>
+      </div>
       <details class="technique">
         <summary>Техника</summary>
         <div class="technique-body">

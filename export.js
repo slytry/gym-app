@@ -1,4 +1,4 @@
-import { WEIGHT_LABELS, getRoutine, getWorkoutExercises } from './program.js?v=15';
+import { WEIGHT_LABELS, getRoutine, getWorkoutExercises } from './program.js?v=17';
 
 export function workoutToMarkdown(workout) {
   const routine = getRoutine(workout.routineId);
@@ -18,7 +18,7 @@ export function workoutToMarkdown(workout) {
     lines.push('');
 
     const results = workout.sets[exercise.id] || [];
-    for (let index = 0; index < exercise.sets; index += 1) {
+    for (let index = 0; index < results.length; index += 1) {
       lines.push(`- Подход ${index + 1}: ${formatSetResult(results[index], exercise)}`);
     }
     lines.push('');
