@@ -1,4 +1,4 @@
-import { WEIGHT_LABELS, getWorkoutRoutine, getWorkoutExercises } from './program.js?v=19';
+import { WEIGHT_LABELS, getWorkoutRoutine, getWorkoutExercises } from './program.js?v=22';
 
 export function workoutToMarkdown(workout) {
   const routine = getWorkoutRoutine(workout);

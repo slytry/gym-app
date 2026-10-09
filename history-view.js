@@ -1,7 +1,7 @@
-import { getWorkoutExercises, getWorkoutRoutine } from './program.js?v=19';
-import { beginWorkoutEdit, saveWorkoutEdit, getExerciseHistory } from './history.js?v=21';
-import { localDateKey } from './state.js?v=21';
-import { formatLocalDateTime, formatSetResult } from './export.js?v=20';
+import { getWorkoutExercises, getWorkoutRoutine } from './program.js?v=22';
+import { beginWorkoutEdit, saveWorkoutEdit, getExerciseHistory } from './history.js?v=22';
+import { localDateKey } from './state.js?v=22';
+import { formatLocalDateTime, formatSetResult } from './export.js?v=22';
 import { escapeHtml } from './html.js?v=20';
 
 export function renderExerciseHistory(history, routineId, exercise) {

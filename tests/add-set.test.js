@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 
-import { NECK_CIRCUIT_IDS } from '../program.js';
+import { LEGACY_NECK_IDS as NECK_CIRCUIT_IDS, createLegacyWorkout } from './fixtures/legacy-workout.js';
 import {
   addWorkoutSet,
   countStatuses,
@@ -19,6 +19,7 @@ import { workoutToMarkdown } from '../export.js';
 
 test('добавленный подход сохраняется после загрузки, учитывается в прогрессе и не меняет план новой тренировки', () => {
   const store = createInitialStore();
+  store.drafts['back-b'] = createLegacyWorkout('back-b', 100);
   const draft = ensureDraft(store, 'back-b', 100);
   draft.sets['chest-row-b'][0].weight = '24';
   const timer = { ...store.timer };
@@ -47,18 +48,20 @@ test('добавленный подход сохраняется после за
   assert.equal(countStatuses(restored).done, 1);
   loaded.history.push(finishWorkout(restored, 500));
   startNewDraft(loaded, 'back-b', 600);
-  assert.equal(loaded.drafts['back-b'].sets['chest-row-b'].length, 3);
+  assert.equal(loaded.drafts['back-b'].sets['chest-row-b'], undefined);
+  assert.equal(loaded.drafts['back-b'].sets['front-squat'].length, 3);
   assert.equal(loaded.history[0].sets['chest-row-b'].length, 4);
 });
 
 test('предзаполняет дополнительный подход из выполненного подхода с тем же номером и не копирует пропуск', () => {
   const store = createInitialStore();
-  const older = finishWorkout(createWorkout('back-b', 100, 'older'), 200);
+  const older = finishWorkout(createLegacyWorkout('back-b', 100, 'older'), 200);
   older.sets['dumbbell-bench'].push({ status: 'done', weight: '22', reps: '10' });
-  const newer = finishWorkout(createWorkout('back-b', 300, 'newer'), 400);
+  const newer = finishWorkout(createLegacyWorkout('back-b', 300, 'newer'), 400);
   newer.sets['dumbbell-bench'].push({ status: 'skipped', weight: '24', reps: '8' });
   store.history.push(older, newer);
 
+  store.drafts['back-b'] = createLegacyWorkout('back-b', 100);
   const draft = addWorkoutSet(store, 'back-b', 'dumbbell-bench', 500);
   assert.equal(draft.sets['dumbbell-bench'][2].weight, '22');
   assert.equal(draft.sets['dumbbell-bench'][2].reps, '10');
@@ -69,6 +72,7 @@ test('предзаполняет дополнительный подход из 
 
 test('для шеи добавляет полный круг и запускает отдых только после последнего направления', () => {
   const store = createInitialStore();
+  store.drafts['back-a'] = createLegacyWorkout('back-a', 100);
   const draft = addWorkoutSet(store, 'back-a', 'neck-front', 100);
   for (const id of NECK_CIRCUIT_IDS) {
     assert.equal(draft.sets[id].length, 3);
@@ -87,6 +91,7 @@ test('для шеи добавляет полный круг и запускае
 
 test('экспорт не обрезает дополнительные выполненные, пропущенные и незавершённые подходы', () => {
   const store = createInitialStore();
+  store.drafts['back-b'] = createLegacyWorkout('back-b', 100);
   const draft = addWorkoutSet(store, 'back-b', 'dumbbell-bench', 100);
   draft.sets['dumbbell-bench'][2] = { status: 'done', weight: '22', reps: '10' };
   addWorkoutSet(store, 'back-b', 'dumbbell-bench', 200);

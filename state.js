@@ -9,8 +9,9 @@ import {
   getRoutine,
   getWorkoutExercises,
   getWorkoutNeckCircuit,
-  getWorkoutRoutine
-} from './program.js?v=19';
+  getWorkoutRoutine,
+  getWorkoutExerciseSettings
+} from './program.js?v=22';
 import { createTimerState, startTimer } from './timer.js?v=10';
 
 export const STORAGE_KEY = 'gym-log-pwa:v1';
@@ -66,7 +67,11 @@ function createSetResult(exercise, previous = null) {
     edited: false
   };
 
-  if (exercise.kind === 'seconds') result.seconds = previousValue(previous, 'seconds', fallback);
+  if (exercise.kind === 'seconds') {
+    // Distance is recorded in a note; the optional time must not default to metres.
+    const seconds = /\d+[–-]?\d*\s+м(?:\s|$)/.test(exercise.target) ? '' : fallback;
+    result.seconds = previousValue(previous, 'seconds', seconds);
+  }
   if (exercise.kind === 'sides') {
     result.leftReps = previousValue(previous, 'leftReps', fallback);
     result.rightReps = previousValue(previous, 'rightReps', fallback);
@@ -222,7 +227,7 @@ export function transitionSetStatus(workout, timer, exerciseId, setIndex, reques
   const circuitIds = getWorkoutNeckCircuit(workout).exerciseIds;
   if (circuitIds.includes(exerciseId) && exerciseId !== circuitIds.at(-1)) return timer;
 
-  const exercise = getExercise(workout, exerciseId);
+  const exercise = getWorkoutExerciseSettings(workout, exerciseId);
   return startTimer(timer, exercise.restSeconds, timestamp);
 }
 
@@ -290,10 +295,19 @@ export function saveStore(storage, store) {
 function ensureWorkoutPlan(workout) {
   if (workout.plan) return;
   const routine = getRoutine(workout.routineId);
-  const exercises = workout.finishedAt ? getWorkoutExercises(workout) : getActiveWorkoutExercises(workout);
+  const exercises = getWorkoutExercises(workout);
   workout.addedExercises = structuredCloneSafe(exercises
     .filter((exercise) => !routine.exercises.some((item) => item.id === exercise.id)));
-  workout.plan = structuredCloneSafe({ ...routine, neckCircuit: NECK_CIRCUIT });
+  workout.plan = structuredCloneSafe({
+    ...routine,
+    exercises: exercises.filter((exercise) => routine.exercises.some((item) => item.id === exercise.id)),
+    neckCircuit: NECK_CIRCUIT
+  });
+  // An old draft can consist entirely of exercises that have since been removed.
+  if (!workout.plan.exercises.length) {
+    workout.plan.exercises = structuredCloneSafe(exercises);
+    workout.addedExercises = [];
+  }
 }
 
 function createId(timestamp) {

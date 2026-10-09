@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { getRoutine } from '../program.js?v=19';
+import { createLegacyWorkout } from './fixtures/legacy-workout.js';
+import { getRoutine } from '../program.js?v=22';
 import { createBackup, parseBackup, restoreBackup } from '../backup.js';
 import { STORAGE_KEY, createInitialStore, ensureDraft, finishWorkout, recordSpecialWorkout, startNewDraft } from '../state.js';
 
@@ -74,7 +75,7 @@ test('восстановление сохраняет старый снимок 
 
 test('неполный круг шеи не принимается как черновик', () => {
   const store = createInitialStore();
-  ensureDraft(store, 'back-a', 100);
+  store.drafts['back-a'] = createLegacyWorkout('back-a', 100);
   const raw = JSON.parse(createBackup(store, 500));
   delete raw.state.drafts['back-a'].sets['neck-right'];
   assert.throws(() => parseBackup(JSON.stringify(raw)), /круг шеи/);

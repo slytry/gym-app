@@ -1,5 +1,5 @@
-import { parseStore, saveStore } from './state.js?v=21';
-import { validateWorkout } from './history.js?v=21';
+import { parseStore, saveStore } from './state.js?v=22';
+import { validateWorkout } from './history.js?v=22';
 
 export const BACKUP_MAX_BYTES = 10 * 1024 * 1024;
 

@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 
 import { PROGRAM } from '../program.js';
+import { createLegacyWorkout } from './fixtures/legacy-workout.js';
 import {
   STORAGE_KEY,
   countStatuses,
@@ -37,19 +38,19 @@ test('фиксирует отдельные занятия для кистей, 
 
 test('создаёт точную структуру подходов, сторон и направлений шеи', () => {
   const legs = createWorkout('legs-a', 1_700_000_000_000, 'legs');
-  const back = createWorkout('back-a', 1_700_000_000_000, 'back');
+  const back = createLegacyWorkout('back-a', 1_700_000_000_000, 'back');
 
-  assert.equal(legs.sets.squat.length, 3);
-  assert.deepEqual(Object.keys(legs.sets['smith-calf-raise'][0]), [
+  assert.equal(legs.sets.squat.length, 4);
+  assert.deepEqual(Object.keys(legs.sets['standing-calf-raise'][0]), [
     'status',
     'weight',
     'prefilled',
     'edited',
     'reps'
   ]);
-  assert.equal(legs.sets.squat[0].reps, '3');
+  assert.equal(legs.sets.squat[0].reps, '5');
   assert.equal(legs.sets.squat[0].weight, '');
-  assert.equal(legs.sets['smith-calf-raise'][0].reps, '8');
+  assert.equal(legs.sets['standing-calf-raise'][0].reps, '12');
   assert.equal(back.sets['neck-front'][0].seconds, '10');
   assert.equal(legs.sets.squat[0].status, 'pending');
   assert.equal(back.sets['neck-front'].length, 2);
@@ -72,7 +73,7 @@ test('предыдущее значение берётся из последне
 });
 
 test('пятница создаёт семь подходов с новыми диапазонами и запускает отдых для тяги и жимов', () => {
-  const workout = createWorkout('back-b', 100, 'friday');
+  const workout = createLegacyWorkout('back-b', 100, 'friday');
   assert.deepEqual(Object.keys(workout.sets), ['chest-row-b', 'seated-press', 'dumbbell-bench']);
   assert.equal(workout.sets['chest-row-b'].length, 3);
   assert.equal(workout.sets['seated-press'].length, 2);
@@ -91,10 +92,10 @@ test('пятница создаёт семь подходов с новыми д
 
 test('добавляет жим в существующий пятничный черновик, сохраняя ввод и не подставляя вторничный вес', () => {
   const store = createInitialStore();
-  const tuesday = finishWorkout(createWorkout('back-a', 100, 'tuesday'), 200);
+  const tuesday = finishWorkout(createLegacyWorkout('back-a', 100, 'tuesday'), 200);
   tuesday.sets['dumbbell-bench'][0] = { status: 'done', weight: '30', reps: '8' };
   store.history.push(tuesday);
-  const draft = createWorkout('back-b', 300, 'friday');
+  const draft = createLegacyWorkout('back-b', 300, 'friday');
   delete draft.sets['dumbbell-bench'];
   draft.sets['chest-row-b'][0] = { status: 'done', weight: '24', reps: '8' };
   store.drafts['back-b'] = draft;
@@ -107,14 +108,14 @@ test('добавляет жим в существующий пятничный �
   assert.equal(ensureDraft(store, 'back-b', 500).sets['dumbbell-bench'][0].weight, '20');
 });
 
-test('считает архивные шраги и удержания только в завершённой пятничной тренировке', () => {
-  const workout = createWorkout('back-b', 100, 'old-friday');
+test('считает архивные шраги и удержания в старом черновике и завершённой тренировке', () => {
+  const workout = createLegacyWorkout('back-b', 100, 'old-friday');
   delete workout.sets['dumbbell-bench'];
   workout.sets['chest-row-b'][0].status = 'done';
   workout.sets.shrug = [{ status: 'done', weight: '24', reps: '10' }, { status: 'skipped' }];
   workout.sets['dumbbell-hold'] = [{ status: 'done', weight: '30', seconds: '25' }, { status: 'pending' }];
 
-  assert.equal(countStatuses(workout).total, 5);
+  assert.equal(countStatuses(workout).total, 9);
   assert.deepEqual(countStatuses(finishWorkout(workout, 200)), {
     done: 3,
     skipped: 1,
@@ -125,7 +126,7 @@ test('считает архивные шраги и удержания толь�
 
 test('старый черновик сохраняет записи с гантелью, но новый подъём в Смите начинает отдельно', () => {
   const store = createInitialStore();
-  const draft = createWorkout('legs-a', 100, 'old');
+  const draft = createLegacyWorkout('legs-a', 100, 'old');
   delete draft.sets['smith-calf-raise'];
   draft.sets['single-calf-raise'] = [
     { status: 'done', weight: '12', leftReps: '10', rightReps: '10' },
@@ -137,11 +138,11 @@ test('старый черновик сохраняет записи с гант�
   assert.equal(draft.sets['single-calf-raise'][0].weight, '12');
   assert.equal(draft.sets['smith-calf-raise'][0].reps, '8');
   assert.equal(draft.sets['smith-calf-raise'][0].weight, '');
-  assert.equal(countStatuses(draft).total, 10);
+  assert.equal(countStatuses(draft).total, 12);
 });
 
 test('предзаполняет нулевой вес и значения сторон и секунд с fallback по плану', () => {
-  const legsHistory = finishWorkout(createWorkout('legs-a', 100, 'legs-history'), 200);
+  const legsHistory = finishWorkout(createLegacyWorkout('legs-a', 100, 'legs-history'), 200);
   legsHistory.sets.squat[0] = { status: 'done', weight: 0, reps: '' };
   legsHistory.sets['smith-calf-raise'][0] = {
     status: 'done',
@@ -149,16 +150,16 @@ test('предзаполняет нулевой вес и значения ст�
     reps: '11'
   };
 
-  const legs = createWorkout('legs-a', 300, 'legs-next', [legsHistory]);
+  const legs = createLegacyWorkout('legs-a', 300, 'legs-next', [legsHistory]);
   assert.equal(legs.sets.squat[0].weight, '0');
   assert.equal(legs.sets.squat[0].reps, '3');
   assert.equal(legs.sets['smith-calf-raise'][0].weight, '');
   assert.equal(legs.sets['smith-calf-raise'][0].reps, '11');
 
-  const backHistory = finishWorkout(createWorkout('back-a', 400, 'back-history'), 500);
+  const backHistory = finishWorkout(createLegacyWorkout('back-a', 400, 'back-history'), 500);
   backHistory.sets['neck-front'][0] = { status: 'done', weight: '', seconds: '13' };
   backHistory.sets['neck-back'][0] = { status: 'done', weight: '', seconds: '' };
-  const back = createWorkout('back-a', 600, 'back-next', [backHistory]);
+  const back = createLegacyWorkout('back-a', 600, 'back-next', [backHistory]);
   assert.equal(back.sets['neck-front'][0].seconds, '13');
   assert.equal(back.sets['neck-back'][0].seconds, '10');
   assert.equal(back.sets['neck-front'][0].status, 'pending');
@@ -246,14 +247,14 @@ test('переход статуса запускает таймер только
 test('все упражнения имеют явную автодлительность отдыха по категории', () => {
   assert.equal(PROGRAM.every((routine) => routine.exercises.every((exercise) => Number.isFinite(exercise.restSeconds))), true);
   assert.equal(PROGRAM[0].exercises.find((exercise) => exercise.id === 'squat').restSeconds, 180);
-  assert.equal(PROGRAM[0].exercises.find((exercise) => exercise.id === 'leg-curl').restSeconds, 120);
-  assert.equal(PROGRAM[1].exercises.find((exercise) => exercise.id === 'dumbbell-bench').restSeconds, 90);
-  assert.equal(PROGRAM[0].exercises.find((exercise) => exercise.id === 'reverse-wrist-curl').restSeconds, 60);
-  assert.equal(PROGRAM[1].exercises.find((exercise) => exercise.id === 'neck-front').restSeconds, 30);
+  assert.equal(PROGRAM[0].exercises.find((exercise) => exercise.id === 'romanian-deadlift').restSeconds, 120);
+  assert.equal(PROGRAM[1].exercises.find((exercise) => exercise.id === 'bench-press').restSeconds, 180);
+  assert.equal(PROGRAM[0].exercises.find((exercise) => exercise.id === 'tibialis-raise').restSeconds, 60);
+  assert.equal(PROGRAM[1].exercises.find((exercise) => exercise.id === 'hyperextension').restSeconds, 45);
 });
 
 test('таймер для шеи стартует только после последнего направления круга', () => {
-  const workout = createWorkout('back-a', 100, 'neck-circuit');
+  const workout = createLegacyWorkout('back-a', 100, 'neck-circuit');
   const idle = createTimerState();
   for (const id of ['neck-front', 'neck-back', 'neck-left']) {
     assert.strictEqual(transitionSetStatus(workout, idle, id, 0, 'done', 1000), idle);

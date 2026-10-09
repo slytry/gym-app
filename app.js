@@ -10,8 +10,9 @@ import {
   getExercise,
   getWorkoutExercises,
   getWorkoutNeckCircuit,
-  getWorkoutRoutine
-} from './program.js?v=19';
+  getWorkoutRoutine,
+  getWorkoutExerciseSettings
+} from './program.js?v=22';
 import {
   addWorkoutExercise,
   addWorkoutSet,
@@ -26,7 +27,7 @@ import {
   startNewDraft,
   transitionSetStatus,
   workoutHasProgress
-} from './state.js?v=21';
+} from './state.js?v=22';
 import {
   addTimerSeconds,
   formatTimer,
@@ -36,13 +37,14 @@ import {
   settleTimer,
   startTimer
 } from './timer.js?v=10';
-import { formatLocalDateTime, formatSetResult, workoutToMarkdown, workoutsToMarkdown } from './export.js?v=20';
-import { BACKUP_MAX_BYTES, createBackup, parseBackup, restoreBackup } from './backup.js?v=21';
-import { deleteWorkout } from './history.js?v=21';
-import { bindHistoryEditor, renderExerciseHistory } from './history-view.js?v=21';
-import { bindExerciseReplacement } from './exercise-replacement.js?v=21';
-import { progressionHint } from './progression.js?v=20';
+import { formatLocalDateTime, formatSetResult, workoutToMarkdown, workoutsToMarkdown } from './export.js?v=22';
+import { BACKUP_MAX_BYTES, createBackup, parseBackup, restoreBackup } from './backup.js?v=22';
+import { deleteWorkout } from './history.js?v=22';
+import { bindHistoryEditor, renderExerciseHistory } from './history-view.js?v=22';
+import { bindExerciseReplacement } from './exercise-replacement.js?v=22';
+import { progressionHint } from './progression.js?v=22';
 import { escapeHtml } from './html.js?v=20';
+import { calculateWarmupSets } from './warmup.js?v=22';
 
 const elements = {
   storageWarning: document.querySelector('#storage-warning'),
@@ -89,6 +91,9 @@ let installPrompt = null;
 let toastTimer = null;
 let activeNeckRound = 0;
 let storageReadError = loaded.error;
+// Session-only UI state: warm-ups never enter the saved workout or timer.
+const warmupChecks = new Map();
+const warmupWeights = new Map();
 const historyEditor = bindHistoryEditor(document.querySelector('#history-editor'), () => store, commitStore, renderSetRow);
 const exerciseReplacement = bindExerciseReplacement(document.querySelector('#exercise-replacement'), () => store, commitStore,
   () => showToast('Упражнение заменено только на это занятие'));
@@ -187,6 +192,24 @@ function bindEvents() {
     result.edited = true;
     draft.updatedAt = Date.now();
     persist();
+    if (input.dataset.field === 'weight') {
+      const exercise = getExercise(draft, input.dataset.exerciseId);
+      if (exercise.warmup) {
+        warmupWeights.set(`${draft.id}:${exercise.id}`, input.value);
+        const block = elements.exerciseList.querySelector(`[data-warmup-exercise="${exercise.id}"]`);
+        block.innerHTML = renderWarmupContent(exercise, draft);
+      }
+    }
+  });
+
+  elements.exerciseList.addEventListener('change', (event) => {
+    const checkbox = event.target.closest('[data-warmup-set]');
+    if (!checkbox) return;
+    const draft = ensureDraft(store, store.selectedRoutineId);
+    const exerciseId = checkbox.closest('[data-warmup-exercise]').dataset.warmupExercise;
+    const checked = warmupChecks.get(`${draft.id}:${exerciseId}`).checked;
+    if (checkbox.checked) checked.add(Number(checkbox.dataset.warmupSet));
+    else checked.delete(Number(checkbox.dataset.warmupSet));
   });
 
   elements.workoutNote.addEventListener('input', () => {
@@ -335,6 +358,7 @@ function bindEvents() {
       const result = restoreBackup(storage, raw);
       if (!result.ok) throw new Error(result.error);
       store = result.store;
+      resetWarmupState();
       storageReadError = null;
       elements.storageWarning.hidden = true;
       activeNeckRound = 0;
@@ -432,6 +456,7 @@ function renderExerciseBank(draft) {
 }
 
 function renderExercise(exercise, draft) {
+  exercise = getWorkoutExerciseSettings(draft, exercise.id);
   const weightText = exercise.weight ? ` · ${WEIGHT_LABELS[exercise.weight]}` : '';
   const setRows = draft.sets[exercise.id].map((result, index) => {
     const previous = findPreviousSet(store.history, draft.routineId, exercise.id, index);
@@ -445,11 +470,13 @@ function renderExercise(exercise, draft) {
         <div>
           <h3>${escapeHtml(exercise.name)}</h3>
           <p class="exercise-meta">${draft.sets[exercise.id].length} × ${escapeHtml(exercise.target)}${escapeHtml(weightText)}</p>
+          ${exercise.superset ? `<p class="superset-label">Суперсет ${escapeHtml(exercise.superset)} · подходы по очереди</p>` : ''}
           ${exercise.replaces ? '<p class="replacement-label">Замена на это занятие</p>' : ''}
           <button class="button button-quiet button-replace" type="button" data-replace-exercise="${exercise.id}" aria-label="${escapeHtml(`Заменить: ${exercise.name}`)}">Заменить</button>
         </div>
         <span class="rest-badge">Отдых ${formatTimer(exercise.restSeconds * 1000)}</span>
       </header>
+      ${exercise.warmup ? `<section class="warmup" data-warmup-exercise="${exercise.id}" aria-label="${escapeHtml(`Разминка: ${exercise.name}`)}">${renderWarmupContent(exercise, draft)}</section>` : ''}
       <div class="sets">
         ${setRows}
         <button class="button button-add-set button-icon" type="button" data-add-set="${exercise.id}" aria-label="${escapeHtml(`Добавить подход: ${exercise.name}`)}"><span class="add-icon" aria-hidden="true">+</span> Добавить подход</button>
@@ -459,6 +486,36 @@ function renderExercise(exercise, draft) {
       ${renderTechnique(exercise)}
     </article>
   `;
+}
+
+function renderWarmupContent(exercise, draft) {
+  const key = `${draft.id}:${exercise.id}`;
+  const entered = warmupWeights.get(key);
+  const recorded = draft.sets[exercise.id].find((set) => set.weight !== '' && set.weight !== undefined)?.weight;
+  const previous = findPreviousSet(store.history, draft.routineId, exercise.id, 0)?.weight;
+  const weight = entered !== undefined && entered !== '' ? entered : recorded ?? previous ?? '';
+  const sets = calculateWarmupSets(weight);
+  const signature = JSON.stringify(sets);
+  if (warmupChecks.get(key)?.signature !== signature) {
+    warmupChecks.set(key, { signature, checked: new Set() });
+  }
+  const { checked } = warmupChecks.get(key);
+  const content = sets.length
+    ? `<div class="warmup-sets">${sets.map((set, index) => `
+        <label class="warmup-set">
+          <input type="checkbox" data-warmup-set="${index}" ${checked.has(index) ? 'checked' : ''}>
+          <span>${set.weightKg.toLocaleString('ru-RU')} кг × ${set.reps}</span>
+        </label>
+      `).join('')}</div>`
+    : `<p class="warmup-hint">${Number(weight) > 0 && Number(weight) <= 20
+      ? 'Рабочий вес не больше грифа — разминочных подходов нет'
+      : 'Укажи рабочий вес для расчёта'}</p>`;
+  return `<h4>Разминка</h4>${content}<p class="warmup-hint">Отдых между разминочными 30–60 с</p>`;
+}
+
+function resetWarmupState() {
+  warmupChecks.clear();
+  warmupWeights.clear();
 }
 
 function renderNeckCircuit(draft) {
@@ -632,6 +689,7 @@ function finishCurrentWorkout() {
   const completed = finishWorkout(draft);
   store.history.push(completed);
   startNewDraft(store, store.selectedRoutineId);
+  resetWarmupState();
   activeNeckRound = 0;
   const saved = persist();
   renderWorkout();
@@ -647,6 +705,7 @@ function clearCurrentDraft() {
   if (!window.confirm(message)) return;
 
   startNewDraft(store, store.selectedRoutineId);
+  resetWarmupState();
   activeNeckRound = 0;
   const saved = persist();
   renderWorkout();
@@ -790,6 +849,7 @@ function commitStore(next) {
   const result = saveStore(storage, next);
   if (!result.ok) { showStorageError(result.error); return false; }
   store = next;
+  resetWarmupState();
   elements.storageWarning.hidden = true;
   renderHistory();
   renderWorkout();

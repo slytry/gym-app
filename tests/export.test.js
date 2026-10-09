@@ -2,7 +2,8 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 
 import { workoutToMarkdown, workoutsToMarkdown } from '../export.js';
-import { createWorkout, finishWorkout } from '../state.js';
+import { finishWorkout } from '../state.js';
+import { createLegacyWorkout as createWorkout } from './fixtures/legacy-workout.js';
 
 test('экспортирует результаты, пропуски, незавершённые подходы и единицы веса', () => {
   const workout = finishWorkout(createWorkout('back-a', 1_700_000_000_000, 'export'), 1_700_000_600_000);

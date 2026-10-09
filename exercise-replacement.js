@@ -1,5 +1,5 @@
-import { NECK_CIRCUIT_IDS, getAvailableExercises, getExercise } from './program.js?v=19';
-import { getExerciseReplacementError, replaceWorkoutExercise } from './state.js?v=21';
+import { NECK_CIRCUIT_IDS, getAvailableExercises, getExercise } from './program.js?v=22';
+import { getExerciseReplacementError, replaceWorkoutExercise } from './state.js?v=22';
 import { formatTimer } from './timer.js?v=10';
 import { escapeHtml } from './html.js?v=20';
 

@@ -13,7 +13,7 @@ test('подсказка предлагает повышение только п
   const previous = completed();
   const draft = createWorkout('legs-a', 300, 'next', [previous]);
   const before = JSON.stringify({ previous, draft });
-  assert.match(progressionHint([previous], draft, draft.plan.exercises[0]), /повышение веса/i);
+  assert.match(progressionHint([previous], draft, draft.plan.exercises.find((item) => item.id === 'squat')), /повышение веса/i);
   assert.equal(JSON.stringify({ previous, draft }), before);
 });
 
@@ -29,14 +29,14 @@ test('пропуск, недобор, неизвестный RIR, отказ и�
     const previous = completed();
     change(previous.sets.squat[1]);
     const draft = createWorkout('legs-a', 300, 'next');
-    assert.doesNotMatch(progressionHint([previous], draft, draft.plan.exercises[0]), /рассмотри повышение веса/i);
+    assert.doesNotMatch(progressionHint([previous], draft, draft.plan.exercises.find((item) => item.id === 'squat')), /рассмотри повышение веса/i);
   }
 });
 
 test('подсказка не использует другую программу, будущую тренировку, прежний диапазон и упражнения шеи', () => {
   const previous = completed();
   const draft = createWorkout('legs-a', 300, 'next');
-  const exercise = draft.plan.exercises[0];
+  const exercise = draft.plan.exercises.find((item) => item.id === 'squat');
   previous.routineId = 'legs-b';
   assert.equal(progressionHint([previous], draft, exercise), '');
   previous.routineId = 'legs-a';
@@ -45,16 +45,49 @@ test('подсказка не использует другую программ
   previous.finishedAt = 200;
   exercise.target = '6–8 повторов';
   assert.match(progressionHint([previous], draft, exercise), /план изменился/i);
-  const back = createWorkout('back-a', 300, 'neck');
-  assert.equal(progressionHint([previous], back, back.plan.exercises.find((item) => item.id === 'neck-front')), '');
+  assert.equal(progressionHint([previous], draft, draft.plan.exercises.find((item) => item.id === 'knee-to-wall')), '');
+});
+
+test('фиксированные 4×5 и 4×3 требуют все четыре подхода и показывают шаг основных движений', () => {
+  for (const [routineId, id, reps, increment] of [
+    ['legs-a', 'squat', '5', '2,5–5'], ['back-a', 'bench-press', '5', '2,5'], ['legs-b', 'deadlift', '3', '2,5–5']
+  ]) {
+    const previous = createWorkout(routineId, 100, `previous-${id}`);
+    previous.sets[id].forEach((set) => Object.assign(set, { status: 'done', weight: '80', reps, rir: '2' }));
+    const completed = finishWorkout(previous, 200);
+    const draft = createWorkout(routineId, 300, `next-${id}`);
+    const exercise = draft.plan.exercises.find((item) => item.id === id);
+    const hint = progressionHint([completed], draft, exercise);
+    assert.ok(hint.includes(`повышение веса на ${increment} кг`));
+    assert.match(hint, /целевого числа повторов/);
+    completed.sets[id][3].reps = String(Number(reps) - 1);
+    assert.doesNotMatch(progressionHint([completed], draft, exercise), /Рассмотри повышение/);
+  }
+});
+
+test('диапазон 6–10 использует верхнюю границу, а изменение прежних 3×3 не даёт совет повысить вес', () => {
+  const previous = createWorkout('back-a', 100, 'pullup');
+  previous.sets['weighted-pullup'].forEach((set) => Object.assign(set, { status: 'done', weight: '0', reps: '10', rir: '2' }));
+  const completed = finishWorkout(previous, 200);
+  const draft = createWorkout('back-a', 300, 'next');
+  const exercise = draft.plan.exercises.find((item) => item.id === 'weighted-pullup');
+  assert.match(progressionHint([completed], draft, exercise), /Рассмотри повышение/);
+  completed.sets['weighted-pullup'][2].reps = '9';
+  assert.doesNotMatch(progressionHint([completed], draft, exercise), /Рассмотри повышение/);
+
+  const deadlift = createWorkout('legs-b', 100, 'old');
+  deadlift.plan.exercises[0].sets = 3;
+  deadlift.sets.deadlift.pop();
+  const next = createWorkout('legs-b', 300, 'next-deadlift');
+  assert.match(progressionHint([finishWorkout(deadlift, 200)], next, next.plan.exercises[0]), /План изменился/);
 });
 
 test('необязательные и дополнительные подходы не мешают подсказке после всех обязательных', () => {
   const previous = completed();
-  previous.plan.exercises[0].optionalAfter = 2;
+  previous.plan.exercises.find((item) => item.id === 'squat').optionalAfter = 2;
   previous.sets.squat[2].status = 'skipped';
   previous.sets.squat.push({ status: 'pending', weight: '', reps: '' });
   const draft = createWorkout('legs-a', 300, 'next');
-  draft.plan.exercises[0].optionalAfter = 2;
-  assert.match(progressionHint([previous], draft, draft.plan.exercises[0]), /Рассмотри повышение веса/);
+  draft.plan.exercises.find((item) => item.id === 'squat').optionalAfter = 2;
+  assert.match(progressionHint([previous], draft, draft.plan.exercises.find((item) => item.id === 'squat')), /Рассмотри повышение веса/);
 });

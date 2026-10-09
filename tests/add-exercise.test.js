@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 
-import { NECK_CIRCUIT_IDS, getActiveWorkoutExercises, getAvailableExercises } from '../program.js';
+import { getActiveWorkoutExercises, getAvailableExercises } from '../program.js';
 import {
   addWorkoutExercise,
   addWorkoutSet,
@@ -21,33 +21,33 @@ test('добавляет упражнение из банка в конец тр
   const store = createInitialStore();
   const draft = ensureDraft(store, 'legs-a', 100);
   const before = getActiveWorkoutExercises(draft).map((exercise) => exercise.id);
-  assert.strictEqual(addWorkoutExercise(store, 'legs-a', 'dumbbell-bench', 200), draft);
+  assert.strictEqual(addWorkoutExercise(store, 'legs-a', 'bench-press', 200), draft);
   assert.equal(draft.updatedAt, 200);
-  assert.deepEqual(getActiveWorkoutExercises(draft).map((exercise) => exercise.id), [...before, 'dumbbell-bench']);
-  assert.equal(draft.sets['dumbbell-bench'].length, 2);
-  assert.equal(draft.sets['dumbbell-bench'][0].reps, '6');
-  assert.equal(countStatuses(draft).total, 12);
+  assert.deepEqual(getActiveWorkoutExercises(draft).map((exercise) => exercise.id), [...before, 'bench-press']);
+  assert.equal(draft.sets['bench-press'].length, 4);
+  assert.equal(draft.sets['bench-press'][0].reps, '5');
+  assert.equal(countStatuses(draft).total, 20);
   assert.equal(workoutHasProgress(draft), true);
-  assert.equal(getAvailableExercises(draft).some((exercise) => exercise.id === 'dumbbell-bench'), false);
+  assert.equal(getAvailableExercises(draft).some((exercise) => exercise.id === 'bench-press'), false);
 
-  draft.sets['dumbbell-bench'][0].weight = '20';
-  addWorkoutExercise(store, 'legs-a', 'dumbbell-bench', 300);
-  assert.equal(draft.sets['dumbbell-bench'][0].weight, '20');
+  draft.sets['bench-press'][0].weight = '20';
+  addWorkoutExercise(store, 'legs-a', 'bench-press', 300);
+  assert.equal(draft.sets['bench-press'][0].weight, '20');
   assert.equal(draft.updatedAt, 200);
   const friday = ensureDraft(store, 'back-b', 400);
-  addWorkoutExercise(store, 'back-b', 'chest-row-a', 500);
-  assert.equal(friday.sets['chest-row-a'], undefined);
-  assert.equal(countStatuses(friday).total, 7);
+  addWorkoutExercise(store, 'back-b', 'hyperextension', 500);
+  assert.equal(friday.sets.hyperextension.length, 2);
+  assert.equal(countStatuses(friday).total, 21);
 });
 
 test('сохраняет добавленное упражнение, дополнительные подходы, таймер и экспорт без изменения базового плана', () => {
   const store = createInitialStore();
-  const draft = addWorkoutExercise(store, 'legs-a', 'seated-press', 100);
-  addWorkoutSet(store, 'legs-a', 'seated-press', 200);
-  draft.sets['seated-press'][2].weight = '16';
-  draft.sets['seated-press'][2].reps = '8';
-  store.timer = transitionSetStatus(draft, store.timer, 'seated-press', 2, 'done', 300);
-  assert.equal(store.timer.deadline, 120_300);
+  const draft = addWorkoutExercise(store, 'legs-a', 'overhead-press', 100);
+  addWorkoutSet(store, 'legs-a', 'overhead-press', 200);
+  draft.sets['overhead-press'][3].weight = '16';
+  draft.sets['overhead-press'][3].reps = '8';
+  store.timer = transitionSetStatus(draft, store.timer, 'overhead-press', 3, 'done', 300);
+  assert.equal(store.timer.deadline, 90_300);
 
   const memory = new Map();
   const storage = {
@@ -57,42 +57,40 @@ test('сохраняет добавленное упражнение, допол
   assert.equal(saveStore(storage, store).ok, true);
   const loaded = loadStore(storage).store;
   const restored = ensureDraft(loaded, 'legs-a', 400);
-  assert.equal(restored.sets['seated-press'].length, 3);
-  assert.equal(countStatuses(restored).total, 13);
+  assert.equal(restored.sets['overhead-press'].length, 4);
+  assert.equal(countStatuses(restored).total, 20);
   loaded.history.push(finishWorkout(restored, 500));
   const markdown = workoutToMarkdown(loaded.history[0]);
-  assert.match(markdown, /## Жим гантелей сидя/);
-  assert.match(markdown, /Подход 3: 16 кг на одну гантель × 8 повт\./);
+  assert.match(markdown, /## Жим штанги стоя/);
+  assert.match(markdown, /Подход 4: 16 кг, общий вес × 8 повт\./);
   startNewDraft(loaded, 'legs-a', 600);
-  assert.equal(loaded.drafts['legs-a'].sets['seated-press'], undefined);
-  assert.equal(loaded.history[0].sets['seated-press'].length, 3);
+  assert.equal(loaded.drafts['legs-a'].sets['overhead-press'], undefined);
+  assert.equal(loaded.history[0].sets['overhead-press'].length, 4);
 });
 
 test('предзаполняет добавленное упражнение из истории той же тренировки', () => {
   const store = createInitialStore();
-  const previous = addWorkoutExercise(store, 'legs-a', 'dumbbell-bench', 100);
-  previous.sets['dumbbell-bench'][0] = { status: 'done', weight: '22', reps: '8' };
+  const previous = addWorkoutExercise(store, 'legs-a', 'bench-press', 100);
+  previous.sets['bench-press'][0] = { status: 'done', weight: '22', reps: '8' };
   store.history.push(finishWorkout(previous, 200));
   startNewDraft(store, 'legs-a', 300);
-  const next = addWorkoutExercise(store, 'legs-a', 'dumbbell-bench', 400);
-  assert.equal(next.sets['dumbbell-bench'][0].weight, '22');
-  assert.equal(next.sets['dumbbell-bench'][0].reps, '8');
-  assert.equal(next.sets['dumbbell-bench'][0].status, 'pending');
+  const next = addWorkoutExercise(store, 'legs-a', 'bench-press', 400);
+  assert.equal(next.sets['bench-press'][0].weight, '22');
+  assert.equal(next.sets['bench-press'][0].reps, '8');
+  assert.equal(next.sets['bench-press'][0].status, 'pending');
 });
 
-test('добавляет шею полным кругом в другой день и сохраняет отдых после последнего направления', () => {
+test('добавляет удержание с секундными подходами и сохраняет отдых и экспорт', () => {
   const store = createInitialStore();
-  const draft = addWorkoutExercise(store, 'legs-a', 'neck-front', 100);
-  assert.equal(NECK_CIRCUIT_IDS.every((id) => draft.sets[id].length === 2), true);
-  assert.equal(countStatuses(draft).total, 18);
-  assert.equal(getAvailableExercises(draft).some((exercise) => NECK_CIRCUIT_IDS.includes(exercise.id)), false);
-  addWorkoutSet(store, 'legs-a', 'neck-front', 200);
-  assert.equal(NECK_CIRCUIT_IDS.every((id) => draft.sets[id].length === 3), true);
-  for (const id of NECK_CIRCUIT_IDS.slice(0, -1)) {
-    assert.strictEqual(transitionSetStatus(draft, store.timer, id, 2, 'done', 300), store.timer);
-  }
-  assert.equal(transitionSetStatus(draft, store.timer, 'neck-right', 2, 'done', 300).deadline, 30_300);
-  assert.match(workoutToMarkdown(finishWorkout(draft, 400)), /## Шея — правый висок/);
+  const draft = addWorkoutExercise(store, 'legs-a', 'plate-pinch-hold', 100);
+  assert.equal(draft.sets['plate-pinch-hold'].length, 3);
+  assert.equal(draft.sets['plate-pinch-hold'][0].seconds, '0');
+  assert.equal(countStatuses(draft).total, 19);
+  assert.equal(getAvailableExercises(draft).some((exercise) => exercise.id === 'plate-pinch-hold'), false);
+  addWorkoutSet(store, 'legs-a', 'plate-pinch-hold', 200);
+  assert.equal(draft.sets['plate-pinch-hold'].length, 4);
+  assert.equal(transitionSetStatus(draft, store.timer, 'plate-pinch-hold', 3, 'done', 300).deadline, 60_300);
+  assert.match(workoutToMarkdown(finishWorkout(draft, 400)), /## Удержание блинов щипковым хватом/);
 });
 
 test('отклоняет неизвестное упражнение до изменения данных', () => {

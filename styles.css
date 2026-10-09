@@ -394,6 +394,59 @@ h3 {
   border-bottom: 1px solid var(--line);
 }
 
+.superset-label {
+  margin: 6px 0 0;
+  color: var(--lime);
+  font-size: 0.76rem;
+}
+
+.warmup {
+  margin: 0 12px 12px;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--surface-2);
+}
+
+.warmup h4 {
+  margin: 0 0 6px;
+  font-size: 0.85rem;
+}
+
+.warmup-sets {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+}
+
+.warmup-set {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 44px;
+  font-size: 0.85rem;
+  cursor: pointer;
+}
+
+.warmup-set input {
+  width: 20px;
+  height: 20px;
+  margin: 0;
+  accent-color: var(--lime);
+}
+
+.warmup-set:has(input:checked) span {
+  color: var(--muted);
+  text-decoration: line-through;
+}
+
+.warmup-hint {
+  margin: 4px 0 0;
+  color: var(--muted);
+  font-size: 0.75rem;
+  line-height: 1.4;
+}
+
 .set-row {
   display: grid;
   grid-template-columns: 18px minmax(0, 1fr);
